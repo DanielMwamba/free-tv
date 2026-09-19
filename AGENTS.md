@@ -18,6 +18,9 @@
 
 ## Application rules
 
+- Build with Next.js 16, React, and TypeScript.
+- Use pnpm for dependency management and repository scripts.
+- Use shadcn/ui as the component foundation, adapting components to the product's visual system instead of shipping unmodified defaults.
 - Use TypeScript with strict type checking.
 - Treat playlist and stream metadata as untrusted input: validate URLs and render text safely.
 - Support HLS through `hls.js` with native HLS fallback where appropriate.
