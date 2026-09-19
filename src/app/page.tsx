@@ -1,7 +1,5 @@
+import { TvShell } from "@/components/tv-shell";
+
 export default function Home() {
-  return (
-    <main>
-      <div>Hello world!</div>
-    </main>
-  );
+  return <TvShell />;
 }
