@@ -10,6 +10,7 @@ web
 
 - Next.js 16
 - React with TypeScript in strict mode
+- Tailwind CSS
 - shadcn/ui for accessible component primitives
 - pnpm as the package manager
 - Hosting remains an open decision.
