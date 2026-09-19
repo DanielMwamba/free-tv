@@ -47,8 +47,10 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
     video.addEventListener("loadedmetadata", onReady);
     video.addEventListener("error", onError);
 
+    const streamUrl = `/api/stream?url=${encodeURIComponent(channel.url)}`;
+
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = channel.url;
+      video.src = streamUrl;
       video.load();
     } else {
       void import("hls.js").then(({ default: Hls }) => {
@@ -60,7 +62,7 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
 
         const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
         destroyHls = () => hls.destroy();
-        hls.loadSource(channel.url);
+        hls.loadSource(streamUrl);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, onReady);
         hls.on(Hls.Events.ERROR, (_event, data) => {

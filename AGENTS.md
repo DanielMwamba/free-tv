@@ -5,7 +5,7 @@
 - Build a private, non-commercial web application for the owner and friends to browse and play legitimately free television streams.
 - Use the Free-TV/IPTV playlist as an initial catalogue source, without implying that every third-party stream is guaranteed, licensed, or available in every country.
 - Never bypass DRM, authentication, geographic restrictions, broadcaster advertising, or player branding.
-- Prefer direct client-side playback. Do not proxy or restream third-party media unless explicit permission is documented.
+- Prefer direct client-side playback. A same-application HLS relay is permitted only to solve browser CORS/CORP incompatibilities for catalogue streams; it must validate destinations and must not bypass access controls.
 
 ## Engineering workflow
 
