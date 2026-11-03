@@ -37,6 +37,14 @@ pnpm build
 - Comme avec une télécommande : `Page ↓` / `Page ↑` passent à la chaîne suivante ou précédente de la liste affichée ; taper un numéro puis `Entrée` (ou attendre 1,5 s) ouvre la chaîne correspondante.
 - L’adresse de la page contient la chaîne en cours (`?c=<identifiant>`) : le bouton « Partager » envoie ou copie ce lien, qui rouvre directement la même chaîne.
 
+## Disponibilité des flux
+
+`/api/health` interroge en arrière-plan chaque flux HLS du catalogue (32 requêtes simultanées, 8 s maximum chacune, résultat gardé une heure). Un flux est « en ligne » s’il renvoie un manifeste `#EXTM3U`, « refusé » sur 403 ou 451, « injoignable » sinon. Les requêtes passent par les mêmes garde-fous que le relais : HTTP(S) uniquement, ports 80/443, aucune adresse privée, redirections bornées et revérifiées. Seuls les 512 premiers octets du manifeste sont lus.
+
+- Le guide affiche une pastille (vert, orange, rouge) et propose le filtre « Disponibles maintenant » ; les résultats arrivent au fil du contrôle.
+- La page `/etat` résume le dernier contrôle et la disponibilité par pays.
+- Le contrôle part du pays du serveur : une chaîne « refusée » peut fonctionner chez un spectateur situé dans le pays de diffusion. Les lecteurs intégrés (YouTube, Dailymotion, Twitch) ne sont pas contrôlés.
+
 ## Lecture des flux
 
 Les manifestes HLS sont lus via `/api/stream`. Ce relais même origine réécrit les sous-playlists, segments et clés afin d’éviter les blocages CORS/CORP des navigateurs. Il n’accepte que les hôtes provenant du catalogue ou découverts dans un manifeste autorisé, refuse les adresses privées et ne contourne ni authentification, ni DRM, ni géoblocage.

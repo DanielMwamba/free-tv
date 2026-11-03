@@ -305,6 +305,56 @@ button, input, select { font: inherit; color: inherit; }
   cursor: pointer;
 }
 .icon-button:hover { background: var(--surface-3); color: var(--text); }
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.switch input { position: absolute; opacity: 0; pointer-events: none; }
+.switch-track {
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  transition: background 0.15s;
+}
+.switch-track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: transform 0.15s, background 0.15s;
+}
+.switch input:checked + .switch-track { background: var(--brand); }
+.switch input:checked + .switch-track::after { background: #fff; transform: translateX(16px); }
+.switch input:focus-visible + .switch-track { outline: 2px solid var(--brand-strong); outline-offset: 2px; }
+.switch input:disabled ~ * { opacity: 0.55; cursor: progress; }
+.switch small { margin-left: auto; color: var(--text-faint); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+
+.health-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: 1px;
+  background: var(--text-faint);
+}
+.health-dot[data-health="online"] { background: var(--ok); }
+.health-dot[data-health="blocked"] { background: var(--warn); }
+.health-dot[data-health="offline"] { background: var(--live); }
+
 .select {
   width: 100%;
   height: 40px;
@@ -456,3 +506,31 @@ button, input, select { font: inherit; color: inherit; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Page « État du service » */
+.status-page {
+  display: grid;
+  gap: 24px;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: clamp(16px, 3vw, 40px);
+}
+.status-intro h1 { margin: 0 0 8px; font-size: 1.6rem; font-weight: 700; }
+.status-intro p { max-width: 70ch; margin: 0 0 8px; color: var(--text-muted); line-height: 1.55; }
+.status-meta { color: var(--text-faint) !important; font-size: 0.875rem; }
+.status-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 0; }
+.status-cards > div { padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.status-cards dt { color: var(--text-muted); font-size: 0.85rem; }
+.status-cards dd { margin: 6px 0 0; font-size: 1.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.status-cards [data-health="online"] dd { color: var(--ok); }
+.status-cards [data-health="blocked"] dd { color: var(--warn); }
+.status-cards [data-health="offline"] dd { color: var(--live); }
+.status-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.status-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.status-table th, .status-table td { padding: 10px 14px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.status-table th:first-child { text-align: left; font-weight: 600; }
+.status-table thead th { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; }
+.status-table tbody tr:last-child > * { border-bottom: 0; }
+.meter { display: inline-block; width: 80px; height: 6px; margin-right: 8px; overflow: hidden; border-radius: 999px; background: var(--surface-3); vertical-align: middle; }
+.meter span { display: block; height: 100%; background: var(--ok); }

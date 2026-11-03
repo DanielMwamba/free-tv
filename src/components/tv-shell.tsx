@@ -1,14 +1,16 @@
 "use client";
 
-import { ExternalLink, Search, Star, Tv, X } from "lucide-react";
-import Link from "next/link";
+import { Search, Star, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ChannelLogo } from "@/components/channel-logo";
 import { Button } from "@/components/ui/button";
+import { SiteHeader } from "@/components/site-header";
 import { VideoPlayer } from "@/components/video-player";
+import { useHealth } from "@/hooks/use-health";
 import { useStoredIds } from "@/hooks/use-stored-ids";
 import type { Channel } from "@/lib/channels";
+import type { ChannelHealth } from "@/lib/health-report";
 import { FAVORITES_KEY, RECENTS_KEY, pushRecent, toggleId } from "@/lib/library";
 import {
   appendDigit,
@@ -25,6 +27,12 @@ type CatalogResponse = {
 };
 
 const PAGE_SIZE = 80;
+
+const HEALTH_LABELS: Record<ChannelHealth, string> = {
+  online: "Flux en ligne au dernier contrôle",
+  blocked: "Flux refusé depuis ce pays au dernier contrôle",
+  offline: "Flux injoignable au dernier contrôle",
+};
 const NUMBER_ENTRY_DELAY = 1500;
 const OSD_DURATION = 2500;
 
@@ -51,6 +59,8 @@ export function TvShell() {
   const [country, setCountry] = useState("TOUS");
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [view, setView] = useState<GuideView>("all");
+  const [onlyAvailable, setOnlyAvailable] = useState(false);
+  const health = useHealth();
   const [favorites, setFavorites] = useStoredIds(FAVORITES_KEY);
   const [recents, setRecents] = useStoredIds(RECENTS_KEY);
   const [loading, setLoading] = useState(true);
@@ -134,9 +144,10 @@ export function TvShell() {
         `${channel.cleanName} ${channel.country} ${channel.group}`
           .toLocaleLowerCase("fr")
           .includes(normalizedQuery);
-      return matchesCountry && matchesQuery;
+      const matchesHealth = !onlyAvailable || health?.results[channel.id] === "online";
+      return matchesCountry && matchesQuery && matchesHealth;
     });
-  }, [byId, channels, country, favorites, query, recents, view]);
+  }, [byId, channels, country, favorites, health, onlyAvailable, query, recents, view]);
 
   const showOsd = useCallback((message: string) => {
     window.clearTimeout(osdTimer.current);
@@ -219,29 +230,13 @@ export function TvShell() {
   const resetFilters = () => {
     setCountry("TOUS");
     setQuery("");
+    setOnlyAvailable(false);
     setVisible(PAGE_SIZE);
   };
 
   return (
     <div className="app">
-      <header className="topbar">
-        <Link className="brand" href="/" aria-label="FREE TV, accueil">
-          <span className="brand-mark" aria-hidden="true">
-            <Tv size={18} />
-          </span>
-          FREE TV
-        </Link>
-        <nav className="topnav" aria-label="Navigation principale">
-          <Link href="/" aria-current="page">
-            <Tv size={16} aria-hidden="true" />
-            <span>Chaînes</span>
-          </Link>
-          <a href="https://github.com/Free-TV/IPTV" target="_blank" rel="noreferrer">
-            <ExternalLink size={16} aria-hidden="true" />
-            <span>Source</span>
-          </a>
-        </nav>
-      </header>
+      <SiteHeader current="channels" />
 
       <main className="layout">
         <section className="stage" aria-label="Lecteur">
@@ -310,6 +305,27 @@ export function TvShell() {
                   </option>
                 ))}
               </select>
+            </label>
+
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={onlyAvailable}
+                disabled={!health?.checkedAt && !health?.checked}
+                onChange={(event) => {
+                  setOnlyAvailable(event.target.checked);
+                  setVisible(PAGE_SIZE);
+                }}
+              />
+              <span className="switch-track" aria-hidden="true" />
+              <span>Disponibles maintenant</span>
+              <small>
+                {!health
+                  ? "Contrôle…"
+                  : health.running
+                    ? `Contrôle ${health.checked}/${health.total}`
+                    : `${Object.values(health.results).filter((status) => status === "online").length} en ligne`}
+              </small>
             </label>
 
             <div className="segmented" role="group" aria-label="Affichage du guide">
@@ -384,6 +400,15 @@ export function TvShell() {
                     <span className="channel-text">
                       <strong>{channel.cleanName}</strong>
                       <small>
+                        {health?.results[channel.id] && (
+                          <span
+                            className="health-dot"
+                            data-health={health.results[channel.id]}
+                            title={HEALTH_LABELS[health.results[channel.id]]}
+                          >
+                            <span className="sr-only">{HEALTH_LABELS[health.results[channel.id]]}. </span>
+                          </span>
+                        )}
                         <span className="channel-number">{numbers.get(channel.id)}</span> · {channel.country}
                       </small>
                     </span>
