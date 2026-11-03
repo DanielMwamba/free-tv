@@ -60,27 +60,29 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
 
     const streamUrl = `/api/stream?url=${encodeURIComponent(channel.url)}`;
 
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = streamUrl;
-      video.load();
-    } else {
-      void import("hls.js").then(({ default: Hls }) => {
-        if (disposed) return;
-        if (!Hls.isSupported()) {
+    // hls.js d'abord : il expose le statut HTTP des échecs. Le HLS natif sert de repli
+    // sur les navigateurs sans Media Source Extensions.
+    void import("hls.js").then(({ default: Hls }) => {
+      if (disposed) return;
+      if (!Hls.isSupported()) {
+        if (video.canPlayType("application/vnd.apple.mpegurl")) {
+          video.src = streamUrl;
+          video.load();
+        } else {
           setState("unsupported");
-          return;
         }
+        return;
+      }
 
-        const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
-        destroyHls = () => hls.destroy();
-        hls.loadSource(streamUrl);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, onReady);
-        hls.on(Hls.Events.ERROR, (_event, data) => {
-          if (data.fatal) onError(data.response?.code);
-        });
+      const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+      destroyHls = () => hls.destroy();
+      hls.loadSource(streamUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, onReady);
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) onError(data.response?.code);
       });
-    }
+    });
 
     return () => {
       disposed = true;
