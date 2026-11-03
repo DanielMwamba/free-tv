@@ -1,17 +1,25 @@
 "use client";
 
 import { ExternalLink, Radio, RefreshCw, TriangleAlert } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { Channel } from "@/lib/channels";
+import { getEmbedUrl } from "@/lib/embeds";
 
-type PlayerState = "idle" | "loading" | "ready" | "error" | "unsupported";
+type PlayerState = "idle" | "loading" | "ready" | "embed" | "error" | "unsupported";
 
 export function VideoPlayer({ channel }: { channel: Channel | null }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [state, setState] = useState<PlayerState>("idle");
   const [attempt, setAttempt] = useState(0);
+  const embedUrl = useMemo(
+    () =>
+      channel && typeof window !== "undefined"
+        ? getEmbedUrl(channel.url, channel.kind, window.location.hostname)
+        : null,
+    [channel],
+  );
 
   useEffect(() => {
     const video = videoRef.current;
@@ -33,7 +41,7 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
     video.load();
 
     if (channel.kind !== "hls") {
-      updateState("unsupported");
+      updateState(embedUrl ? "embed" : "unsupported");
       return () => {
         disposed = true;
       };
@@ -79,12 +87,13 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
       video.removeAttribute("src");
       video.load();
     };
-  }, [channel, attempt]);
+  }, [channel, attempt, embedUrl]);
 
   const statusText = {
     idle: "Sélectionnez une chaîne dans l’index.",
     loading: "Syntonisation du flux…",
     ready: "Signal reçu. Lancez la lecture.",
+    embed: "Lecteur officiel de la plateforme.",
     error: "Le diffuseur ne répond pas ou bloque la lecture web.",
     unsupported: "Cette source ne peut pas être intégrée directement ici.",
   }[state];
@@ -98,7 +107,7 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
         </div>
         <span className={`signal signal-${state}`} aria-hidden="true">
           <Radio size={16} strokeWidth={2.5} />
-          {state === "ready" ? "EN LIGNE" : "SIGNAL"}
+          {state === "ready" ? "EN LIGNE" : state === "embed" ? "INTÉGRÉ" : "SIGNAL"}
         </span>
       </div>
 
@@ -109,9 +118,21 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
           playsInline
           preload="metadata"
           aria-label={channel ? `Lecteur de ${channel.cleanName}` : "Lecteur TV"}
+          hidden={state === "embed"}
         />
 
-        {state !== "ready" && (
+        {state === "embed" && embedUrl && channel && (
+          <iframe
+            key={`${embedUrl}-${attempt}`}
+            src={embedUrl}
+            title={`Lecteur officiel de ${channel.cleanName}`}
+            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+          />
+        )}
+
+        {state !== "ready" && state !== "embed" && (
           <div className="screen-message" role="status" aria-live="polite">
             {state === "error" || state === "unsupported" ? (
               <TriangleAlert size={32} strokeWidth={1.8} />

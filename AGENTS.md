@@ -24,7 +24,7 @@
 - Use TypeScript with strict type checking.
 - Treat playlist and stream metadata as untrusted input: validate URLs and render text safely.
 - Support HLS through `hls.js` with native HLS fallback where appropriate.
-- Use official embedded players for YouTube and Dailymotion content.
+- Use official embedded players for YouTube, Dailymotion, and Twitch content; keep a link to the source when a page cannot be converted to an embed.
 - Fail gracefully when a stream is offline, geo-blocked, mixed-content, or incompatible with browser CORS policies.
 - Keep the interface responsive, keyboard accessible, and usable on phones, desktops, and television-sized displays.
 

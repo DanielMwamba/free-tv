@@ -16,6 +16,14 @@ type CatalogResponse = {
 
 const DISPLAY_LIMIT = 140;
 
+const FORMAT_LABELS: Record<Channel["kind"], string> = {
+  hls: "HLS",
+  youtube: "YT",
+  dailymotion: "DM",
+  twitch: "TW",
+  external: "LIEN",
+};
+
 function pageCode(index: number) {
   return `P${String(100 + (index % 900)).padStart(3, "0")}`;
 }
@@ -217,7 +225,7 @@ export function TvShell() {
                       <small>{channel.country}</small>
                     </span>
                     <span className={`format-tag format-${channel.kind}`}>
-                      {channel.kind === "hls" ? "HLS" : "LIEN"}
+                      {FORMAT_LABELS[channel.kind]}
                     </span>
                   </button>
                 );
