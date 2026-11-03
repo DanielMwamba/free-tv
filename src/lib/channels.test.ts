@@ -32,7 +32,7 @@ test("classe les plateformes et ignore les URL invalides", () => {
 
 test("reconnaît les plateformes par domaine exact", () => {
   const kinds = parsePlaylist(`#EXTM3U
-#EXTINF:-1,Dailymotion
+#EXTINF:-1,CNews Ⓓ
 https://www.dailymotion.com/video/x8abcd
 #EXTINF:-1,Twitch
 https://www.twitch.tv/example
@@ -40,4 +40,12 @@ https://www.twitch.tv/example
 https://notyoutube.com/watch?v=abc`).map((channel) => channel.kind);
 
   assert.deepEqual(kinds, ["dailymotion", "twitch", "external"]);
+});
+
+test("retire le marqueur Dailymotion du nom affiché", () => {
+  const [channel] = parsePlaylist(`#EXTM3U
+#EXTINF:-1,CNews Ⓓ
+https://www.dailymotion.com/video/x8abcd`);
+
+  assert.equal(channel?.cleanName, "CNews");
 });

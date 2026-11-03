@@ -51,7 +51,7 @@ function parseAttributes(line: string) {
 }
 
 function cleanDisplayName(name: string) {
-  return name.replace(/[ⓈⒼⓎⓉ]/gu, "").replace(/\s{2,}/g, " ").trim();
+  return name.replace(/[ⓈⒼⓎⓉⒹ]/gu, "").replace(/\s{2,}/g, " ").trim();
 }
 
 function countryName(code: string, fallback: string) {
