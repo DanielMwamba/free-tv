@@ -41,6 +41,10 @@ pnpm build
 - « Image dans l’image » détache la vidéo HLS dans une fenêtre flottante. Le bouton « Diffuser » (Remote Playback API : AirPlay, Chromecast) n’apparaît que si le navigateur trouve un appareil capable de lire le flux ; les navigateurs Chromium ne diffusent pas les flux lus par `hls.js` (Media Source Extensions), ce bouton y reste donc généralement masqué.
 - L’adresse de la page contient la chaîne en cours (`?c=<identifiant>`) : le bouton « Partager » envoie ou copie ce lien, qui rouvre directement la même chaîne.
 
+## Installation sur un appareil
+
+L’application déclare un manifeste (`/manifest.webmanifest`) et des icônes générées (`src/app/icon.tsx`, `src/app/apple-icon.tsx`) : Chrome, Edge et Android proposent « Installer l’application », Safari sur iPhone « Sur l’écran d’accueil ». Elle s’ouvre alors en fenêtre autonome. Aucun service worker n’est enregistré : les flux sont en direct et ne peuvent pas être mis en cache, l’application demande donc une connexion.
+
 ## Disponibilité des flux
 
 `/api/health` interroge en arrière-plan chaque flux HLS du catalogue (32 requêtes simultanées, 8 s maximum chacune, résultat gardé une heure). Un flux est « en ligne » s’il renvoie un manifeste `#EXTM3U`, « refusé » sur 403 ou 451, « injoignable » sinon. Les requêtes passent par les mêmes garde-fous que le relais : HTTP(S) uniquement, ports 80/443, aucune adresse privée, redirections bornées et revérifiées. Seuls les 512 premiers octets du manifeste sont lus.

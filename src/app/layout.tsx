@@ -12,6 +12,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "FREE TV — chaînes publiques en direct",
   description: "Un lecteur web personnel pour explorer les chaînes publiques de Free-TV/IPTV.",
+  appleWebApp: { capable: true, title: "FREE TV", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
