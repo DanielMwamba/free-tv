@@ -25,25 +25,25 @@ FREE TV provides a private, non-commercial web interface for discovering free te
 
 ## Positioning
 
-The product turns a technical IPTV playlist into a friendly catalogue with browser-appropriate playback: direct HLS where permitted and official embedded players where required.
+The product turns a technical IPTV playlist into a friendly catalogue with browser-appropriate playback: direct HLS where permitted, a same-origin HLS relay where browsers block the source, and official embedded players where required.
 
 ## Operating Context
 
 - Users browse a channel catalogue, search or filter it, select a channel, and watch it in the same interface.
 - The initial catalogue source is the public Free-TV/IPTV playlist.
-- Playback happens directly from the broadcaster or source platform whenever possible.
+- Playback happens directly from the broadcaster or source platform whenever possible; HLS catalogue streams pass through the application's relay only when browser CORS/CORP or mixed-content rules would otherwise block them.
 - Availability can vary by browser, country, CORS policy, source uptime, and broadcaster restrictions.
 
 ## Capabilities and Constraints
 
 - Parse and validate M3U playlist metadata as untrusted input.
 - Support HLS through `hls.js` with an appropriate native HLS fallback.
-- Use official embeds for YouTube and Dailymotion sources.
+- Use official embeds for YouTube, Dailymotion, and Twitch sources, with a link to the source when a page cannot be embedded.
 - Present useful offline, incompatible, mixed-content, CORS, and geographic-restriction states.
 - Do not bypass DRM, authentication, geographic restrictions, advertising, or player branding.
-- Do not proxy or restream third-party media without documented permission.
+- The same-origin HLS relay exists only to resolve browser CORS/CORP and mixed-content incompatibilities for catalogue streams. It must validate destinations, refuse private networks, pass broadcaster responses through unchanged, and never bypass DRM, authentication, or geographic restrictions. It is not a general proxy or restreaming service.
 - Do not claim that every playlist entry is licensed, stable, or available everywhere.
-- The primary interface language remains an open decision.
+- The interface language is French.
 
 ## Brand Commitments
 
