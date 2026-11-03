@@ -165,6 +165,28 @@ button, input, select { font: inherit; color: inherit; }
 }
 
 /* Lecteur */
+.unmute {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, #fff 24%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, #000 72%, transparent);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.unmute:hover { background: color-mix(in srgb, #000 88%, transparent); }
+.unmute:focus-visible { outline: 2px solid var(--brand-strong); outline-offset: 2px; }
+.unmute svg { width: 18px; height: 18px; }
+
 .screen {
   position: relative;
   overflow: hidden;

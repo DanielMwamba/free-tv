@@ -12,6 +12,7 @@ import {
   Star,
   TriangleAlert,
   Tv,
+  Volume2,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -53,6 +54,7 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite, osd
   const [level, setLevel] = useState(AUTO_LEVEL);
   const [audios, setAudios] = useState<TrackOption[]>([]);
   const [audio, setAudio] = useState(0);
+  const [isMutedAutoplay, setIsMutedAutoplay] = useState(false);
   const embedUrl = useMemo(
     () =>
       channel && typeof window !== "undefined"
@@ -75,6 +77,7 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite, osd
       setLevel(AUTO_LEVEL);
       setAudios([]);
       setAudio(0);
+      setIsMutedAutoplay(false);
     });
 
     if (!video || !channel) {
@@ -95,7 +98,25 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite, osd
     }
 
     let destroyHls: (() => void) | undefined;
-    const onReady = () => !disposed && setState("ready");
+    let started = false;
+    // Choisir une chaîne vaut lancement : on démarre la lecture dès que le flux est prêt.
+    // Sans geste récent (lien partagé ouvert à froid), le navigateur refuse le son ; on
+    // relance alors en sourdine, ce que toutes les politiques d'autoplay autorisent.
+    const startPlayback = () => {
+      if (disposed || started) return;
+      started = true;
+      video.play().catch((error: unknown) => {
+        if (disposed || (error as DOMException | null)?.name !== "NotAllowedError") return;
+        video.muted = true;
+        setIsMutedAutoplay(true);
+        void video.play().catch(() => undefined);
+      });
+    };
+    const onReady = () => {
+      if (disposed) return;
+      setState("ready");
+      startPlayback();
+    };
     const onError = (status?: number) =>
       !disposed && setState(classifyPlaybackFailure(status, channel.isGeoBlocked));
     const onMediaError = () => onError();
@@ -269,6 +290,13 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite, osd
     setAudio(value);
   };
 
+  const unmute = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = false;
+    setIsMutedAutoplay(false);
+  };
+
   const isFailure = state === "error" || state === "geoblocked" || state === "unsupported";
 
   return (
@@ -279,8 +307,17 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite, osd
             {osd}
           </div>
         )}
+        {isMutedAutoplay && state === "ready" && (
+          <button type="button" className="unmute" onClick={unmute}>
+            <Volume2 aria-hidden="true" />
+            Activer le son
+          </button>
+        )}
         <video
           ref={videoRef}
+          onVolumeChange={(event) => {
+            if (!event.currentTarget.muted) setIsMutedAutoplay(false);
+          }}
           controls
           playsInline
           preload="metadata"
