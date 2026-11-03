@@ -30,6 +30,11 @@ pnpm lint
 pnpm build
 ```
 
+## Utilisation
+
+- Le guide liste les chaînes avec leur logo, leur numéro (position dans le catalogue) et leur pays ; `/` place le focus dans la recherche.
+- L’étoile ajoute une chaîne aux favoris. Les onglets « Favoris » et « Récents » (12 dernières chaînes ouvertes) sont enregistrés dans le `localStorage` du navigateur : ils restent propres à chaque appareil et ne quittent jamais celui-ci.
+
 ## Lecture des flux
 
 Les manifestes HLS sont lus via `/api/stream`. Ce relais même origine réécrit les sous-playlists, segments et clés afin d’éviter les blocages CORS/CORP des navigateurs. Il n’accepte que les hôtes provenant du catalogue ou découverts dans un manifeste autorisé, refuse les adresses privées et ne contourne ni authentification, ni DRM, ni géoblocage.

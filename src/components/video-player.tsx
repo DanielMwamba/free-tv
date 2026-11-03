@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, RefreshCw, TriangleAlert, Tv } from "lucide-react";
+import { ExternalLink, RefreshCw, Star, TriangleAlert, Tv } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ChannelLogo } from "@/components/channel-logo";
@@ -11,7 +11,14 @@ import { classifyPlaybackFailure } from "@/lib/playback-error";
 
 type PlayerState = "idle" | "loading" | "ready" | "embed" | "error" | "geoblocked" | "unsupported";
 
-export function VideoPlayer({ channel, number }: { channel: Channel | null; number?: number }) {
+type VideoPlayerProps = {
+  channel: Channel | null;
+  number?: number;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+};
+
+export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [state, setState] = useState<PlayerState>("idle");
   const [attempt, setAttempt] = useState(0);
@@ -154,7 +161,7 @@ export function VideoPlayer({ channel, number }: { channel: Channel | null; numb
       {channel && (
         <div className="now-playing">
           <ChannelLogo channel={channel} large />
-          <div>
+          <div className="now-text">
             <h1>{channel.cleanName}</h1>
             <div className="now-meta">
               {(state === "ready" || state === "embed") && <span className="badge badge-live">En direct</span>}
@@ -170,6 +177,14 @@ export function VideoPlayer({ channel, number }: { channel: Channel | null; numb
               )}
             </div>
           </div>
+          <Button
+            variant={isFavorite ? "secondary" : "outline"}
+            aria-pressed={isFavorite}
+            onClick={onToggleFavorite}
+          >
+            <Star fill={isFavorite ? "currentColor" : "none"} />
+            {isFavorite ? "Favori" : "Ajouter aux favoris"}
+          </Button>
         </div>
       )}
 

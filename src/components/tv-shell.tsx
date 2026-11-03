@@ -1,13 +1,15 @@
 "use client";
 
-import { ExternalLink, Search, Tv, X } from "lucide-react";
+import { ExternalLink, Search, Star, Tv, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ChannelLogo } from "@/components/channel-logo";
 import { Button } from "@/components/ui/button";
 import { VideoPlayer } from "@/components/video-player";
+import { useStoredIds } from "@/hooks/use-stored-ids";
 import type { Channel } from "@/lib/channels";
+import { FAVORITES_KEY, RECENTS_KEY, pushRecent, toggleId } from "@/lib/library";
 
 type CatalogResponse = {
   channels: Channel[];
@@ -16,6 +18,14 @@ type CatalogResponse = {
 };
 
 const PAGE_SIZE = 80;
+
+type GuideView = "all" | "favorites" | "recents";
+
+const VIEW_LABELS: Record<GuideView, string> = {
+  all: "Toutes",
+  favorites: "Favoris",
+  recents: "Récents",
+};
 
 const FORMAT_LABELS: Record<Channel["kind"], string> = {
   hls: "HLS",
@@ -31,6 +41,9 @@ export function TvShell() {
   const [query, setQuery] = useState("");
   const [country, setCountry] = useState("TOUS");
   const [visible, setVisible] = useState(PAGE_SIZE);
+  const [view, setView] = useState<GuideView>("all");
+  const [favorites, setFavorites] = useStoredIds(FAVORITES_KEY);
+  const [recents, setRecents] = useStoredIds(RECENTS_KEY);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
@@ -99,9 +112,17 @@ export function TvShell() {
     );
   }, [channels]);
 
+  const byId = useMemo(() => new Map(channels.map((channel) => [channel.id, channel])), [channels]);
+
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("fr");
-    return channels.filter((channel) => {
+    const source =
+      view === "all"
+        ? channels
+        : (view === "favorites" ? favorites : recents)
+            .map((id) => byId.get(id))
+            .filter((channel): channel is Channel => channel !== undefined);
+    return source.filter((channel) => {
       const countryKey = channel.countryCode || channel.group;
       const matchesCountry = country === "TOUS" || countryKey === country;
       const matchesQuery =
@@ -111,7 +132,14 @@ export function TvShell() {
           .includes(normalizedQuery);
       return matchesCountry && matchesQuery;
     });
-  }, [channels, country, query]);
+  }, [byId, channels, country, favorites, query, recents, view]);
+
+  const selectChannel = (channel: Channel) => {
+    setSelected(channel);
+    setRecents((current) => pushRecent(current, channel.id));
+  };
+
+  const toggleFavorite = (channel: Channel) => setFavorites((current) => toggleId(current, channel.id));
 
   const resetFilters = () => {
     setCountry("TOUS");
@@ -142,7 +170,12 @@ export function TvShell() {
 
       <main className="layout">
         <section className="stage" aria-label="Lecteur">
-          <VideoPlayer channel={selected} number={selected ? numbers.get(selected.id) : undefined} />
+          <VideoPlayer
+            channel={selected}
+            number={selected ? numbers.get(selected.id) : undefined}
+            isFavorite={selected ? favorites.includes(selected.id) : false}
+            onToggleFavorite={() => selected && toggleFavorite(selected)}
+          />
         </section>
 
         <aside className="guide" aria-label="Guide des chaînes">
@@ -198,6 +231,23 @@ export function TvShell() {
                 ))}
               </select>
             </label>
+
+            <div className="segmented" role="group" aria-label="Affichage du guide">
+              {(Object.keys(VIEW_LABELS) as GuideView[]).map((item) => (
+                <button
+                  type="button"
+                  key={item}
+                  aria-pressed={view === item}
+                  onClick={() => {
+                    setView(item);
+                    setVisible(PAGE_SIZE);
+                  }}
+                >
+                  {VIEW_LABELS[item]}
+                  {item === "favorites" && favorites.length > 0 && <span>{favorites.length}</span>}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="channel-list" aria-busy={loading}>
@@ -216,41 +266,70 @@ export function TvShell() {
 
             {!loading && !error && filtered.length === 0 && (
               <div className="guide-state">
-                <strong>Aucune chaîne trouvée</strong>
-                <p>Essayez un autre nom ou un autre pays.</p>
-                <Button variant="outline" onClick={resetFilters}>
-                  Effacer les filtres
-                </Button>
+                {view === "favorites" && favorites.length === 0 ? (
+                  <>
+                    <strong>Aucun favori</strong>
+                    <p>Touchez l’étoile d’une chaîne pour la retrouver ici.</p>
+                  </>
+                ) : view === "recents" && recents.length === 0 ? (
+                  <>
+                    <strong>Aucune chaîne récente</strong>
+                    <p>Les dernières chaînes regardées apparaîtront ici.</p>
+                  </>
+                ) : (
+                  <>
+                    <strong>Aucune chaîne trouvée</strong>
+                    <p>Essayez un autre nom ou un autre pays.</p>
+                    <Button variant="outline" onClick={resetFilters}>
+                      Effacer les filtres
+                    </Button>
+                  </>
+                )}
               </div>
             )}
 
             {filtered.slice(0, visible).map((channel) => {
               const isActive = selected?.id === channel.id;
+              const isFavorite = favorites.includes(channel.id);
               return (
-                <button
-                  type="button"
-                  className="channel-row"
-                  data-active={isActive || undefined}
-                  aria-current={isActive || undefined}
-                  key={channel.id}
-                  onClick={() => setSelected(channel)}
-                >
-                  <ChannelLogo channel={channel} />
-                  <span className="channel-text">
-                    <strong>{channel.cleanName}</strong>
-                    <small>
-                      <span className="channel-number">{numbers.get(channel.id)}</span> · {channel.country}
-                    </small>
-                  </span>
-                  <span className="row-tags">
-                    {channel.isGeoBlocked && (
-                      <span className="tag tag-region" title="Disponible seulement dans son pays de diffusion">
-                        Région
-                      </span>
-                    )}
-                    {channel.kind !== "hls" && <span className="tag">{FORMAT_LABELS[channel.kind]}</span>}
-                  </span>
-                </button>
+                <div className="channel-item" key={channel.id}>
+                  <button
+                    type="button"
+                    className="channel-row"
+                    data-active={isActive || undefined}
+                    aria-current={isActive || undefined}
+                    onClick={() => selectChannel(channel)}
+                  >
+                    <ChannelLogo channel={channel} />
+                    <span className="channel-text">
+                      <strong>{channel.cleanName}</strong>
+                      <small>
+                        <span className="channel-number">{numbers.get(channel.id)}</span> · {channel.country}
+                      </small>
+                    </span>
+                    <span className="row-tags">
+                      {channel.isGeoBlocked && (
+                        <span className="tag tag-region" title="Disponible seulement dans son pays de diffusion">
+                          Région
+                        </span>
+                      )}
+                      {channel.kind !== "hls" && <span className="tag">{FORMAT_LABELS[channel.kind]}</span>}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="favorite-toggle"
+                    aria-pressed={isFavorite}
+                    aria-label={
+                      isFavorite
+                        ? `Retirer ${channel.cleanName} des favoris`
+                        : `Ajouter ${channel.cleanName} aux favoris`
+                    }
+                    onClick={() => toggleFavorite(channel)}
+                  >
+                    <Star size={18} fill={isFavorite ? "currentColor" : "none"} />
+                  </button>
+                </div>
               );
             })}
 

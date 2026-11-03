@@ -190,7 +190,7 @@ button, input, select { font: inherit; color: inherit; }
 
 .now-playing {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 16px;
   align-items: center;
   padding: 18px 4px 0;
@@ -297,6 +297,25 @@ button, input, select { font: inherit; color: inherit; }
   font-size: 0.875rem;
 }
 
+.segmented { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 10px; background: var(--surface-2); }
+.segmented button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.segmented button:hover { color: var(--text); }
+.segmented button[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
+.segmented span { min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--brand); color: #fff; font-size: 0.7rem; line-height: 18px; }
+
 .channel-list { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; overscroll-behavior: contain; }
 .channel-row {
   display: grid;
@@ -313,7 +332,26 @@ button, input, select { font: inherit; color: inherit; }
   text-align: left;
   cursor: pointer;
 }
+.channel-item { position: relative; }
+.channel-item .channel-row { padding-right: 52px; }
 .channel-row:hover { background: var(--surface-2); }
+.favorite-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+.favorite-toggle:hover { background: var(--surface-3); color: var(--text); }
+.favorite-toggle[aria-pressed="true"] { color: var(--warn); }
 .channel-row[data-active] { background: var(--surface-3); box-shadow: inset 3px 0 0 var(--brand); }
 .channel-text { display: grid; gap: 3px; min-width: 0; }
 .channel-text strong, .channel-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -374,6 +412,8 @@ button, input, select { font: inherit; color: inherit; }
   .screen { border-radius: 0; }
   .now-playing, .player-actions, .status-line { padding-inline: 16px; margin-inline: 0; }
   .guide { margin: 0 12px; }
+  .now-playing { grid-template-columns: auto minmax(0, 1fr); }
+  .now-playing > button { grid-column: 1 / -1; }
 }
 
 @media (min-width: 1800px) {
