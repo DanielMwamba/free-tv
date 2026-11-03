@@ -9,6 +9,7 @@ import { SiteHeader } from "@/components/site-header";
 import { VideoPlayer } from "@/components/video-player";
 import { useHealth } from "@/hooks/use-health";
 import { useStoredIds } from "@/hooks/use-stored-ids";
+import { CATEGORY_LABELS, type Category } from "@/lib/categories";
 import type { Channel } from "@/lib/channels";
 import type { ChannelHealth } from "@/lib/health-report";
 import { FAVORITES_KEY, RECENTS_KEY, pushRecent, toggleId } from "@/lib/library";
@@ -60,6 +61,7 @@ export function TvShell() {
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [view, setView] = useState<GuideView>("all");
   const [onlyAvailable, setOnlyAvailable] = useState(false);
+  const [category, setCategory] = useState<Category | "all">("all");
   const health = useHealth();
   const [favorites, setFavorites] = useStoredIds(FAVORITES_KEY);
   const [recents, setRecents] = useStoredIds(RECENTS_KEY);
@@ -145,9 +147,16 @@ export function TvShell() {
           .toLocaleLowerCase("fr")
           .includes(normalizedQuery);
       const matchesHealth = !onlyAvailable || health?.results[channel.id] === "online";
-      return matchesCountry && matchesQuery && matchesHealth;
+      const matchesCategory = category === "all" || channel.category === category;
+      return matchesCountry && matchesQuery && matchesHealth && matchesCategory;
     });
-  }, [byId, channels, country, favorites, health, onlyAvailable, query, recents, view]);
+  }, [byId, category, channels, country, favorites, health, onlyAvailable, query, recents, view]);
+
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<Category, number>();
+    for (const channel of channels) counts.set(channel.category, (counts.get(channel.category) ?? 0) + 1);
+    return counts;
+  }, [channels]);
 
   const showOsd = useCallback((message: string) => {
     window.clearTimeout(osdTimer.current);
@@ -231,6 +240,7 @@ export function TvShell() {
     setCountry("TOUS");
     setQuery("");
     setOnlyAvailable(false);
+    setCategory("all");
     setVisible(PAGE_SIZE);
   };
 
@@ -306,6 +316,25 @@ export function TvShell() {
                 ))}
               </select>
             </label>
+
+            <div className="chips" role="group" aria-label="Catégories">
+              {(["all", ...Object.keys(CATEGORY_LABELS)] as (Category | "all")[])
+                .filter((item) => item === "all" || categoryCounts.has(item))
+                .map((item) => (
+                  <button
+                    type="button"
+                    key={item}
+                    className="chip"
+                    aria-pressed={category === item}
+                    onClick={() => {
+                      setCategory(item);
+                      setVisible(PAGE_SIZE);
+                    }}
+                  >
+                    {item === "all" ? "Tout" : CATEGORY_LABELS[item]}
+                  </button>
+                ))}
+            </div>
 
             <label className="switch">
               <input

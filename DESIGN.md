@@ -42,6 +42,7 @@ Inter (`next/font`, variable `--font-app`), graisses 500 à 700. Les numéros de
 
 - **Ligne de chaîne** : logo 44 px (initiales si le logo manque, échoue ou n’est pas en HTTPS), nom, numéro · pays, étiquettes discrètes (« Région », plateforme intégrée). La ligne active porte un fond plus clair et un filet d’accent à gauche.
 - **Bandeau de lecture** : logo 56 px, nom, badge « En direct », numéro, pays, badges de restriction, SD ou source HTTP.
+- **Puces de catégorie** : pilules de 32 px défilant horizontalement sans barre visible ; la puce active passe en texte sombre sur fond clair, comme les rangées de genres des plateformes de télévision gratuite.
 - **Pastille de disponibilité** : point de 8 px devant le numéro (vert en ligne, orange refusé dans le pays du serveur, rouge injoignable), doublé d’un texte pour les lecteurs d’écran.
 - **Interrupteur « Disponibles maintenant »** : case native masquée et piste visuelle, avec l’avancement du contrôle à droite.
 - **Page État** : quatre cartes de synthèse puis un tableau par pays avec une jauge de disponibilité.

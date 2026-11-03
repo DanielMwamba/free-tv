@@ -305,6 +305,31 @@ button, input, select { font: inherit; color: inherit; }
   cursor: pointer;
 }
 .icon-button:hover { background: var(--surface-3); color: var(--text); }
+.chips {
+  display: flex;
+  gap: 6px;
+  margin: 0 -2px;
+  padding: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chip:hover { border-color: var(--surface-3); color: var(--text); }
+.chip[aria-pressed="true"] { border-color: var(--text); background: var(--text); color: var(--bg); }
+
 .switch {
   display: flex;
   align-items: center;

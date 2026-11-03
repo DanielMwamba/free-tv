@@ -1,3 +1,5 @@
+import { categorize, type Category } from "./categories";
+
 export const PLAYLIST_URL =
   "https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8";
 
@@ -14,6 +16,7 @@ export type Channel = {
   group: string;
   channelNumber: string | null;
   kind: ChannelKind;
+  category: Category;
   isGeoBlocked: boolean;
   isSd: boolean;
   isSecure: boolean;
@@ -105,6 +108,7 @@ export function parsePlaylist(source: string): Channel[] {
       group,
       channelNumber: attributes["tvg-chno"] || null,
       kind: getKind(url),
+      category: categorize(cleanDisplayName(name)),
       isGeoBlocked: name.includes("Ⓖ"),
       isSd: name.includes("Ⓢ"),
       isSecure: url.startsWith("https://"),
