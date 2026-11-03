@@ -36,6 +36,7 @@ pnpm build
 - Les puces de catégorie (Infos, Sport, Jeunesse, Musique, Films et séries, Religion, Généralistes) filtrent le guide. Le catalogue Free-TV ne fournit pas de genre : la catégorie est déduite du nom de la chaîne par des mots-clés (`src/lib/categories.ts`) et peut donc se tromper.
 - L’étoile ajoute une chaîne aux favoris. Les onglets « Favoris » et « Récents » (12 dernières chaînes ouvertes) sont enregistrés dans le `localStorage` du navigateur : ils restent propres à chaque appareil et ne quittent jamais celui-ci.
 - Comme avec une télécommande : `Page ↓` / `Page ↑` passent à la chaîne suivante ou précédente de la liste affichée ; taper un numéro puis `Entrée` (ou attendre 1,5 s) ouvre la chaîne correspondante.
+- Pour les flux HLS qui en proposent plusieurs, le bandeau du lecteur permet de choisir la qualité (« Auto » laisse `hls.js` s’adapter au débit) et la piste audio.
 - L’adresse de la page contient la chaîne en cours (`?c=<identifiant>`) : le bouton « Partager » envoie ou copie ce lien, qui rouvre directement la même chaîne.
 
 ## Disponibilité des flux

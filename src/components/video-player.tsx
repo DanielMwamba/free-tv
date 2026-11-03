@@ -8,9 +8,11 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import type { Channel } from "@/lib/channels";
 import { getEmbedUrl } from "@/lib/embeds";
 import { classifyPlaybackFailure } from "@/lib/playback-error";
+import { audioOptions, AUTO_LEVEL, qualityOptions, type TrackOption } from "@/lib/tracks";
 import { withSharedChannel } from "@/lib/zapping";
 
 type PlayerState = "idle" | "loading" | "ready" | "embed" | "error" | "geoblocked" | "unsupported";
+type HlsInstance = InstanceType<typeof import("hls.js").default>;
 
 type VideoPlayerProps = {
   channel: Channel | null;
@@ -24,6 +26,11 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite }: V
   const [state, setState] = useState<PlayerState>("idle");
   const [attempt, setAttempt] = useState(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const hlsRef = useRef<HlsInstance | null>(null);
+  const [qualities, setQualities] = useState<TrackOption[]>([]);
+  const [level, setLevel] = useState(AUTO_LEVEL);
+  const [audios, setAudios] = useState<TrackOption[]>([]);
+  const [audio, setAudio] = useState(0);
   const embedUrl = useMemo(
     () =>
       channel && typeof window !== "undefined"
@@ -40,6 +47,13 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite }: V
         if (!disposed) setState(nextState);
       });
     };
+    queueMicrotask(() => {
+      if (disposed) return;
+      setQualities([]);
+      setLevel(AUTO_LEVEL);
+      setAudios([]);
+      setAudio(0);
+    });
 
     if (!video || !channel) {
       updateState("idle");
@@ -85,10 +99,22 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite }: V
       }
 
       const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
-      destroyHls = () => hls.destroy();
+      hlsRef.current = hls;
+      destroyHls = () => {
+        hlsRef.current = null;
+        hls.destroy();
+      };
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, onReady);
+      hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
+        onReady();
+        if (!disposed) setQualities(qualityOptions(data.levels));
+      });
+      hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (_event, data) => {
+        if (disposed) return;
+        setAudios(audioOptions(data.audioTracks));
+        setAudio(Math.max(hls.audioTrack, 0));
+      });
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (data.fatal) onError(data.response?.code);
       });
@@ -131,6 +157,16 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite }: V
     } catch {
       window.prompt("Copiez ce lien :", url);
     }
+  };
+
+  const changeLevel = (value: number) => {
+    // -1 rend la main à l'adaptation automatique de hls.js.
+    if (hlsRef.current) hlsRef.current.currentLevel = value;
+    setLevel(value);
+  };
+  const changeAudio = (value: number) => {
+    if (hlsRef.current) hlsRef.current.audioTrack = value;
+    setAudio(value);
   };
 
   const isFailure = state === "error" || state === "geoblocked" || state === "unsupported";
@@ -212,6 +248,30 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite }: V
               {copiedId === channel.id ? <Check /> : <Share2 />}
               {copiedId === channel.id ? "Lien copié" : "Partager"}
             </Button>
+            {state === "ready" && qualities.length > 0 && (
+              <label className="track-select">
+                <span>Qualité</span>
+                <select className="select" value={level} onChange={(event) => changeLevel(Number(event.target.value))}>
+                  {qualities.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {state === "ready" && audios.length > 0 && (
+              <label className="track-select">
+                <span>Audio</span>
+                <select className="select" value={audio} onChange={(event) => changeAudio(Number(event.target.value))}>
+                  {audios.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
         </div>
       )}
