@@ -1,4 +1,5 @@
 import { categorize, type Category } from "./categories";
+import { parseGuideUrls } from "./epg";
 
 export const PLAYLIST_URL =
   "https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8";
@@ -15,6 +16,7 @@ export type Channel = {
   country: string;
   group: string;
   channelNumber: string | null;
+  tvgId: string | null;
   kind: ChannelKind;
   category: Category;
   isGeoBlocked: boolean;
@@ -107,6 +109,7 @@ export function parsePlaylist(source: string): Channel[] {
       country: countryName(countryCode, group),
       group,
       channelNumber: attributes["tvg-chno"] || null,
+      tvgId: attributes["tvg-id"]?.trim() || null,
       kind: getKind(url),
       category: categorize(cleanDisplayName(name)),
       isGeoBlocked: name.includes("Ⓖ"),
@@ -118,7 +121,7 @@ export function parsePlaylist(source: string): Channel[] {
   return channels;
 }
 
-export async function getChannels() {
+async function fetchPlaylist() {
   const response = await fetch(PLAYLIST_URL, {
     next: { revalidate: 60 * 60 },
     headers: { Accept: "application/x-mpegURL, application/vnd.apple.mpegurl, text/plain" },
@@ -128,5 +131,16 @@ export async function getChannels() {
     throw new Error(`La playlist a répondu avec le statut ${response.status}.`);
   }
 
-  return parsePlaylist(await response.text());
+  return response.text();
+}
+
+/** Chaînes et guides des programmes annoncés par l'en-tête de la playlist. */
+export async function getCatalogue() {
+  const source = await fetchPlaylist();
+  const header = source.slice(0, source.search(/\r?\n/) >>> 0);
+  return { channels: parsePlaylist(source), guideUrls: parseGuideUrls(header) };
+}
+
+export async function getChannels() {
+  return parsePlaylist(await fetchPlaylist());
 }

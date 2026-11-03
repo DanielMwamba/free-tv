@@ -233,6 +233,14 @@ button, input, select { font: inherit; color: inherit; }
 .badge-live::before { width: 6px; height: 6px; border-radius: 50%; background: var(--live); content: ""; }
 .badge-warn { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
 .now-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.programme-guide { display: grid; gap: 6px; margin-top: 12px; font-size: 0.85rem; }
+.programme { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-width: 0; color: var(--text-muted); }
+.programme-label { min-width: 92px; color: var(--text-faint); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.programme-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 46ch; }
+.programme-now .programme-title { color: var(--text); font-weight: 600; }
+.programme-time { color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.programme-progress { flex-basis: 100%; height: 3px; overflow: hidden; border-radius: 999px; background: var(--surface-3); }
+.programme-progress span { display: block; height: 100%; background: var(--brand); }
 .track-select { display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.8rem; font-weight: 600; }
 .track-select .select { width: auto; min-width: 92px; }
 

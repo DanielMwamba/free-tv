@@ -18,6 +18,7 @@ test("parse les métadonnées M3U utiles à l'interface", () => {
   assert.equal(channel.country, "France");
   assert.equal(channel.kind, "hls");
   assert.equal(channel.category, "news");
+  assert.equal(channel.tvgId, "FranceInfo.fr");
   assert.equal(channel.isGeoBlocked, true);
   assert.equal(channel.isSd, true);
   assert.equal(channel.isSecure, true);

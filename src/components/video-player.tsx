@@ -16,6 +16,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ChannelLogo } from "@/components/channel-logo";
+import { ProgrammeGuide } from "@/components/programme-guide";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { Channel } from "@/lib/channels";
 import { getEmbedUrl } from "@/lib/embeds";
@@ -338,6 +339,7 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite, osd
                 </span>
               )}
             </div>
+            <ProgrammeGuide channel={channel} />
           </div>
           <div className="now-actions">
             <Button

@@ -49,6 +49,15 @@ pnpm build
 - La page `/etat` résume le dernier contrôle et la disponibilité par pays.
 - Le contrôle part du pays du serveur : une chaîne « refusée » peut fonctionner chez un spectateur situé dans le pays de diffusion. Les lecteurs intégrés (YouTube, Dailymotion, Twitch) ne sont pas contrôlés.
 
+## Guide des programmes
+
+Le bandeau de lecture affiche « En ce moment » (avec l’avancement) et « Ensuite » quand un guide XMLTV couvre la chaîne. `/api/epg?c=<identifiant>` retrouve le pays de la chaîne d’après son `tvg-id` (« France2.fr » → `fr`) puis télécharge le guide de ce pays annoncé dans l’en-tête `x-tvg-url` de la playlist.
+
+- Seuls les fichiers nationaux d’epgshare01 en HTTPS sont acceptés (`epg_ripper_XX1.xml.gz`) ; le client ne choisit jamais l’adresse, et chaque redirection est revérifiée comme pour le relais.
+- Le fichier est décompressé et lu en flux ; seuls les programmes des 12 prochaines heures restent en mémoire, pendant une heure (dix minutes après un échec).
+- Le premier affichage pour un pays peut prendre 5 à 15 s, le temps du téléchargement.
+- La correspondance entre la playlist et le guide est approximative (identifiant ou nom, sans ponctuation ni casse) : certaines chaînes n’ont pas de programme, et les horaires dépendent de la qualité du guide communautaire.
+
 ## Lecture des flux
 
 Les manifestes HLS sont lus via `/api/stream`. Ce relais même origine réécrit les sous-playlists, segments et clés afin d’éviter les blocages CORS/CORP des navigateurs. Il n’accepte que les hôtes provenant du catalogue ou découverts dans un manifeste autorisé, refuse les adresses privées et ne contourne ni authentification, ni DRM, ni géoblocage.
