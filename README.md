@@ -38,6 +38,8 @@ Les chaînes dont la source est en HTTP passent aussi par ce relais : le navigat
 
 Les chaînes YouTube, Dailymotion et Twitch s’ouvrent dans le lecteur officiel de chaque plateforme. YouTube n’est intégrable que pour les liens contenant un identifiant de vidéo (`watch?v=`, `youtu.be`) ou de chaîne (`/channel/UC…`) ; les pages `/@nom`, `/c/nom` ou `/user/nom` restent accessibles via « Ouvrir la source ».
 
+L’application envoie une politique de sécurité du contenu (`next.config.ts`) : médias et requêtes limités à la même origine (plus `blob:` pour hls.js), iframes limitées aux lecteurs officiels YouTube, Dailymotion et Twitch. Ajouter une nouvelle plateforme intégrée demande donc d’étendre `frame-src`.
+
 Une chaîne peut encore échouer si son URL est obsolète, si son codec n’est pas pris en charge, si elle est limitée à une région ou si le diffuseur applique un challenge anti-bot. Dans ce cas, l’interface propose de réessayer ou d’ouvrir la source officielle.
 
 FREE TV n’héberge aucun contenu vidéo. Les flux, droits et conditions de disponibilité restent sous la responsabilité de leurs diffuseurs.
