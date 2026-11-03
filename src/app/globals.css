@@ -145,6 +145,24 @@ button, input, select { font: inherit; color: inherit; }
   padding: clamp(16px, 2vw, 28px);
 }
 .stage { position: sticky; top: 88px; min-width: 0; }
+.osd {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 5;
+  max-width: calc(100% - 32px);
+  padding: 10px 14px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: color-mix(in srgb, #000 78%, transparent);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
 
 /* Lecteur */
 .screen {
@@ -214,6 +232,7 @@ button, input, select { font: inherit; color: inherit; }
 .badge-live { background: color-mix(in srgb, var(--live) 18%, transparent); color: #ff8a8a; }
 .badge-live::before { width: 6px; height: 6px; border-radius: 50%; background: var(--live); content: ""; }
 .badge-warn { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.now-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .player-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding: 0 4px; }
 .status-line { margin: 12px 4px 0; color: var(--text-faint); font-size: 0.82rem; line-height: 1.5; }
 .status-line a { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--brand-strong); }
@@ -393,6 +412,15 @@ button, input, select { font: inherit; color: inherit; }
   line-height: 1.6;
 }
 .footer p { margin: 0; }
+.footer p + p { margin-top: 4px; }
+.footer kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.75rem;
+}
 .footer a { color: var(--text-muted); }
 
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -400,7 +428,8 @@ button, input, select { font: inherit; color: inherit; }
 
 @media (max-width: 1023px) {
   .layout { grid-template-columns: 1fr; }
-  .stage, .guide { position: static; }
+  .stage { position: relative; top: auto; }
+  .guide { position: static; }
   .guide { max-height: none; }
   .channel-list { overflow: visible; }
 }
@@ -413,7 +442,7 @@ button, input, select { font: inherit; color: inherit; }
   .now-playing, .player-actions, .status-line { padding-inline: 16px; margin-inline: 0; }
   .guide { margin: 0 12px; }
   .now-playing { grid-template-columns: auto minmax(0, 1fr); }
-  .now-playing > button { grid-column: 1 / -1; }
+  .now-actions { grid-column: 1 / -1; }
 }
 
 @media (min-width: 1800px) {

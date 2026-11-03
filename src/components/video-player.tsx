@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, RefreshCw, Star, TriangleAlert, Tv } from "lucide-react";
+import { Check, ExternalLink, RefreshCw, Share2, Star, TriangleAlert, Tv } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ChannelLogo } from "@/components/channel-logo";
@@ -8,6 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import type { Channel } from "@/lib/channels";
 import { getEmbedUrl } from "@/lib/embeds";
 import { classifyPlaybackFailure } from "@/lib/playback-error";
+import { withSharedChannel } from "@/lib/zapping";
 
 type PlayerState = "idle" | "loading" | "ready" | "embed" | "error" | "geoblocked" | "unsupported";
 
@@ -22,6 +23,7 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite }: V
   const videoRef = useRef<HTMLVideoElement>(null);
   const [state, setState] = useState<PlayerState>("idle");
   const [attempt, setAttempt] = useState(0);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const embedUrl = useMemo(
     () =>
       channel && typeof window !== "undefined"
@@ -111,6 +113,26 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite }: V
     geoblocked: "Le diffuseur refuse l’accès : chaîne probablement réservée à son pays de diffusion.",
     unsupported: "Cette source ne peut pas être intégrée directement ici.",
   }[state];
+  const share = async () => {
+    if (!channel) return;
+    const url = withSharedChannel(window.location.href, channel.id);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: channel.cleanName, url });
+      } catch {
+        // Partage annulé par l'utilisateur.
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(channel.id);
+      window.setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      window.prompt("Copiez ce lien :", url);
+    }
+  };
+
   const isFailure = state === "error" || state === "geoblocked" || state === "unsupported";
 
   return (
@@ -177,14 +199,20 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite }: V
               )}
             </div>
           </div>
-          <Button
-            variant={isFavorite ? "secondary" : "outline"}
-            aria-pressed={isFavorite}
-            onClick={onToggleFavorite}
-          >
-            <Star fill={isFavorite ? "currentColor" : "none"} />
-            {isFavorite ? "Favori" : "Ajouter aux favoris"}
-          </Button>
+          <div className="now-actions">
+            <Button
+              variant={isFavorite ? "secondary" : "outline"}
+              aria-pressed={isFavorite}
+              onClick={onToggleFavorite}
+            >
+              <Star fill={isFavorite ? "currentColor" : "none"} />
+              {isFavorite ? "Favori" : "Ajouter aux favoris"}
+            </Button>
+            <Button variant="outline" onClick={share}>
+              {copiedId === channel.id ? <Check /> : <Share2 />}
+              {copiedId === channel.id ? "Lien copié" : "Partager"}
+            </Button>
+          </div>
         </div>
       )}
 

@@ -2,7 +2,7 @@
 
 import { ExternalLink, Search, Star, Tv, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ChannelLogo } from "@/components/channel-logo";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,13 @@ import { VideoPlayer } from "@/components/video-player";
 import { useStoredIds } from "@/hooks/use-stored-ids";
 import type { Channel } from "@/lib/channels";
 import { FAVORITES_KEY, RECENTS_KEY, pushRecent, toggleId } from "@/lib/library";
+import {
+  appendDigit,
+  channelAtNumber,
+  readSharedChannelId,
+  stepChannel,
+  withSharedChannel,
+} from "@/lib/zapping";
 
 type CatalogResponse = {
   channels: Channel[];
@@ -18,6 +25,8 @@ type CatalogResponse = {
 };
 
 const PAGE_SIZE = 80;
+const NUMBER_ENTRY_DELAY = 1500;
+const OSD_DURATION = 2500;
 
 type GuideView = "all" | "favorites" | "recents";
 
@@ -47,7 +56,11 @@ export function TvShell() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  const [numberEntry, setNumberEntry] = useState("");
+  const [osd, setOsd] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const numberTimer = useRef<number | undefined>(undefined);
+  const osdTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -61,7 +74,9 @@ export function TvShell() {
       .then((data) => {
         setChannels(data.channels);
         setUpdatedAt(data.updatedAt ?? null);
+        const sharedId = readSharedChannelId(window.location.search);
         const preferred =
+          data.channels.find((channel) => channel.id === sharedId) ??
           data.channels.find(
             (channel) =>
               channel.countryCode === "FR" &&
@@ -81,17 +96,6 @@ export function TvShell() {
       .finally(() => setLoading(false));
 
     return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "/" && document.activeElement !== searchRef.current) {
-        event.preventDefault();
-        searchRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   // Numéro de chaîne stable : position dans le catalogue, comme une télécommande.
@@ -134,10 +138,81 @@ export function TvShell() {
     });
   }, [byId, channels, country, favorites, query, recents, view]);
 
-  const selectChannel = (channel: Channel) => {
-    setSelected(channel);
-    setRecents((current) => pushRecent(current, channel.id));
-  };
+  const showOsd = useCallback((message: string) => {
+    window.clearTimeout(osdTimer.current);
+    setOsd(message);
+    osdTimer.current = window.setTimeout(() => setOsd(null), OSD_DURATION);
+  }, []);
+
+  const selectChannel = useCallback(
+    (channel: Channel) => {
+      setSelected(channel);
+      setRecents((current) => pushRecent(current, channel.id));
+      // Lien partageable sans recharger ni empiler l'historique.
+      window.history.replaceState(null, "", withSharedChannel(window.location.href, channel.id));
+    },
+    [setRecents],
+  );
+
+  const tuneTo = useCallback(
+    (channel: Channel | null) => {
+      if (!channel) return;
+      selectChannel(channel);
+      showOsd(`${numbers.get(channel.id)} · ${channel.cleanName}`);
+    },
+    [numbers, selectChannel, showOsd],
+  );
+
+  useEffect(() => {
+    const commitNumber = (value: string) => {
+      window.clearTimeout(numberTimer.current);
+      setNumberEntry("");
+      const channel = channelAtNumber(channels, value);
+      if (channel) tuneTo(channel);
+      else if (value) showOsd(`Aucune chaîne ${value}`);
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLSelectElement ||
+        target instanceof HTMLTextAreaElement ||
+        target?.isContentEditable;
+      if (isTyping || event.altKey || event.ctrlKey || event.metaKey) return;
+
+      if (event.key === "/") {
+        event.preventDefault();
+        searchRef.current?.focus();
+      } else if (event.key === "PageDown" || event.key === "ChannelDown") {
+        event.preventDefault();
+        tuneTo(stepChannel(filtered, selected?.id, 1));
+      } else if (event.key === "PageUp" || event.key === "ChannelUp") {
+        event.preventDefault();
+        tuneTo(stepChannel(filtered, selected?.id, -1));
+      } else if (/^\d$/.test(event.key)) {
+        event.preventDefault();
+        const next = appendDigit(numberEntry, event.key);
+        setNumberEntry(next);
+        window.clearTimeout(numberTimer.current);
+        if (next) numberTimer.current = window.setTimeout(() => commitNumber(next), NUMBER_ENTRY_DELAY);
+      } else if (event.key === "Enter" && numberEntry) {
+        event.preventDefault();
+        commitNumber(numberEntry);
+      } else if (event.key === "Escape" && numberEntry) {
+        window.clearTimeout(numberTimer.current);
+        setNumberEntry("");
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [channels, filtered, numberEntry, selected, showOsd, tuneTo]);
+
+  useEffect(() => {
+    document
+      .querySelector<HTMLElement>('.channel-row[aria-current="true"]')
+      ?.scrollIntoView({ block: "nearest" });
+  }, [selected]);
 
   const toggleFavorite = (channel: Channel) => setFavorites((current) => toggleId(current, channel.id));
 
@@ -170,6 +245,11 @@ export function TvShell() {
 
       <main className="layout">
         <section className="stage" aria-label="Lecteur">
+          {(numberEntry || osd) && (
+            <div className="osd" role="status" aria-live="polite">
+              {numberEntry ? `Chaîne ${numberEntry}_` : osd}
+            </div>
+          )}
           <VideoPlayer
             channel={selected}
             number={selected ? numbers.get(selected.id) : undefined}
@@ -345,6 +425,10 @@ export function TvShell() {
       </main>
 
       <footer className="footer">
+        <p>
+          Raccourcis : <kbd>/</kbd> rechercher · <kbd>Page ↑</kbd> <kbd>Page ↓</kbd> chaîne précédente
+          ou suivante · chiffres puis <kbd>Entrée</kbd> pour aller à un numéro.
+        </p>
         <p>
           FREE TV n’héberge aucun flux : droits et disponibilité relèvent de chaque diffuseur.
           {updatedAt &&

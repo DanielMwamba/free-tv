@@ -61,3 +61,5 @@ Inter (`next/font`, variable `--font-app`), graisses 500 à 700. Les numéros de
 - Contour de focus de 2 px en `--brand-strong` sur tous les contrôles.
 - Cibles tactiles d’au moins 40–44 px ; la ligne active expose `aria-current`.
 - `/` place le focus dans la recherche.
+- `Page ↓` / `Page ↑` (et les touches chaîne d’une télécommande) zappent dans la liste affichée ; les chiffres composent un numéro, confirmé par `Entrée` ou après 1,5 s. Un bandeau (OSD) annonce la chaîne via `role="status"`. Ces raccourcis sont ignorés pendant la saisie dans un champ.
+- « Partager » utilise le partage natif, sinon le presse-papiers.
