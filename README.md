@@ -36,7 +36,7 @@ Les manifestes HLS sont lus via `/api/stream`. Ce relais même origine réécrit
 
 Les chaînes dont la source est en HTTP passent aussi par ce relais : le navigateur reçoit le flux en même origine, sans contenu mixte, mais le trajet entre le serveur FREE TV et le diffuseur n’est pas chiffré. Le lecteur les signale avec l’étiquette « SOURCE HTTP ».
 
-Les chaînes YouTube, Dailymotion et Twitch s’ouvrent dans le lecteur officiel de chaque plateforme. YouTube n’est intégrable que pour les liens contenant un identifiant de vidéo (`watch?v=`, `youtu.be`) ou de chaîne (`/channel/UC…`) ; les pages `/@nom`, `/c/nom` ou `/user/nom` restent accessibles via « Ouvrir la source ».
+Les chaînes YouTube, Dailymotion et Twitch s’ouvrent dans le lecteur officiel de chaque plateforme. YouTube n’est intégrable que pour les liens contenant un identifiant de vidéo (`watch?v=`, `youtu.be`) ou de chaîne (`/channel/UC…`) ; les pages `/@nom`, `/c/nom` ou `/user/nom` restent accessibles via « Ouvrir la source ». Comme le navigateur ne signale pas l’échec d’une iframe tierce, un lien « Ouvrir sur la plateforme » reste toujours affiché sous le lecteur intégré.
 
 L’application envoie une politique de sécurité du contenu (`next.config.ts`) : médias et requêtes limités à la même origine (plus `blob:` pour hls.js), iframes limitées aux lecteurs officiels YouTube, Dailymotion et Twitch. Ajouter une nouvelle plateforme intégrée demande donc d’étendre `frame-src`.
 

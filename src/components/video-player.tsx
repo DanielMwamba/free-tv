@@ -175,6 +175,11 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
         {channel && !channel.isSecure && (
           <em title="Le relais contacte ce diffuseur sans chiffrement.">SOURCE HTTP</em>
         )}
+        {channel && state === "embed" && (
+          <a className="meta-link" href={channel.url} target="_blank" rel="noreferrer">
+            Ouvrir sur la plateforme <ExternalLink size={14} aria-hidden="true" />
+          </a>
+        )}
       </div>
     </section>
   );

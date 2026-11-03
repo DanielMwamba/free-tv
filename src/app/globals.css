@@ -346,7 +346,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .player-meta {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-auto-columns: auto;
+  grid-auto-flow: column;
   gap: 14px;
   align-items: center;
   min-height: 58px;
@@ -363,6 +365,18 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   white-space: nowrap;
 }
 .player-meta em { color: var(--yellow); }
+.meta-link {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 44px;
+  color: var(--cyan);
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
 .service-footer {
   display: flex;
   justify-content: space-between;
@@ -410,7 +424,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .player-heading h1 { font-size: 1.2rem; }
   .signal { padding: 7px; }
   .screen-message { padding: 24px 18px; }
-  .player-meta { grid-template-columns: auto 1fr; padding-inline: 18px; }
+  .player-meta { grid-template-columns: auto 1fr; grid-auto-flow: row; padding-inline: 18px; }
   .service-footer { flex-direction: column; gap: 8px; }
 }
 
