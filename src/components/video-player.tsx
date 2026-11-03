@@ -6,8 +6,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { Channel } from "@/lib/channels";
 import { getEmbedUrl } from "@/lib/embeds";
+import { classifyPlaybackFailure } from "@/lib/playback-error";
 
-type PlayerState = "idle" | "loading" | "ready" | "embed" | "error" | "unsupported";
+type PlayerState = "idle" | "loading" | "ready" | "embed" | "error" | "geoblocked" | "unsupported";
 
 export function VideoPlayer({ channel }: { channel: Channel | null }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -49,11 +50,13 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
 
     let destroyHls: (() => void) | undefined;
     const onReady = () => !disposed && setState("ready");
-    const onError = () => !disposed && setState("error");
+    const onError = (status?: number) =>
+      !disposed && setState(classifyPlaybackFailure(status, channel.isGeoBlocked));
+    const onMediaError = () => onError();
 
     updateState("loading");
     video.addEventListener("loadedmetadata", onReady);
-    video.addEventListener("error", onError);
+    video.addEventListener("error", onMediaError);
 
     const streamUrl = `/api/stream?url=${encodeURIComponent(channel.url)}`;
 
@@ -74,7 +77,7 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, onReady);
         hls.on(Hls.Events.ERROR, (_event, data) => {
-          if (data.fatal) onError();
+          if (data.fatal) onError(data.response?.code);
         });
       });
     }
@@ -83,7 +86,7 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
       disposed = true;
       destroyHls?.();
       video.removeEventListener("loadedmetadata", onReady);
-      video.removeEventListener("error", onError);
+      video.removeEventListener("error", onMediaError);
       video.removeAttribute("src");
       video.load();
     };
@@ -95,6 +98,7 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
     ready: "Signal reçu. Lancez la lecture.",
     embed: "Lecteur officiel de la plateforme.",
     error: "Le diffuseur ne répond pas ou bloque la lecture web.",
+    geoblocked: "Le diffuseur refuse l’accès : chaîne probablement réservée à son pays de diffusion.",
     unsupported: "Cette source ne peut pas être intégrée directement ici.",
   }[state];
 
@@ -134,7 +138,7 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
 
         {state !== "ready" && state !== "embed" && (
           <div className="screen-message" role="status" aria-live="polite">
-            {state === "error" || state === "unsupported" ? (
+            {state === "error" || state === "geoblocked" || state === "unsupported" ? (
               <TriangleAlert size={32} strokeWidth={1.8} />
             ) : (
               <Radio size={34} strokeWidth={1.7} />
@@ -145,7 +149,7 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
                 <RefreshCw /> Réessayer
               </Button>
             )}
-            {channel && (state === "error" || state === "unsupported") && (
+            {channel && (state === "error" || state === "geoblocked" || state === "unsupported") && (
               <a
                 className={buttonVariants()}
                 href={channel.url}

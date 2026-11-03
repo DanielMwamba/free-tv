@@ -277,6 +277,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   letter-spacing: 0.08em;
 }
 .format-external { color: var(--yellow); }
+.row-tags { display: flex; gap: 4px; }
+.region-tag { color: var(--yellow); }
 .channel-row[data-active] .format-tag { background: var(--ink); }
 .channel-skeleton {
   height: 62px;
@@ -331,7 +333,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   text-align: center;
 }
 .screen-message strong { max-width: 42ch; color: var(--paper); font-size: clamp(0.8rem, 1.5vw, 1rem); line-height: 1.65; }
-.screen-error .screen-message, .screen-unsupported .screen-message { color: var(--red); }
+.screen-error .screen-message,
+.screen-geoblocked .screen-message,
+.screen-unsupported .screen-message { color: var(--red); }
 .tuning-sweep {
   position: absolute;
   inset: 0;

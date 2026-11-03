@@ -42,4 +42,6 @@ L’application envoie une politique de sécurité du contenu (`next.config.ts`)
 
 Une chaîne peut encore échouer si son URL est obsolète, si son codec n’est pas pris en charge, si elle est limitée à une région ou si le diffuseur applique un challenge anti-bot. Dans ce cas, l’interface propose de réessayer ou d’ouvrir la source officielle.
 
+Les chaînes marquées Ⓖ dans la playlist portent l’étiquette « RÉGION ». Quand un diffuseur refuse l’accès (HTTP 403 ou 451), ou qu’une chaîne Ⓖ échoue sans statut, le lecteur indique une restriction régionale probable. FREE TV ne contourne pas ces restrictions : le relais transmet la réponse du diffuseur telle quelle, et ces chaînes restent lisibles depuis leur pays de diffusion.
+
 FREE TV n’héberge aucun contenu vidéo. Les flux, droits et conditions de disponibilité restent sous la responsabilité de leurs diffuseurs.

@@ -221,8 +221,15 @@ export function TvShell() {
                     <strong>{channel.cleanName}</strong>
                     <small>{channel.country}</small>
                   </span>
-                  <span className={`format-tag format-${channel.kind}`}>
-                    {FORMAT_LABELS[channel.kind]}
+                  <span className="row-tags">
+                    {channel.isGeoBlocked && (
+                      <span className="format-tag region-tag" title="Disponible seulement dans son pays de diffusion">
+                        RÉGION
+                      </span>
+                    )}
+                    <span className={`format-tag format-${channel.kind}`}>
+                      {FORMAT_LABELS[channel.kind]}
+                    </span>
                   </span>
                 </button>
               );
