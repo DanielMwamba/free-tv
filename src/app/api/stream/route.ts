@@ -12,9 +12,15 @@ const trustedHosts = new Set<string>();
 let seedPromise: Promise<void> | null = null;
 
 async function seedTrustedHosts() {
-  seedPromise ??= getChannels().then((channels) => {
-    channels.forEach((channel) => trustedHosts.add(new URL(channel.url).hostname.toLowerCase()));
-  });
+  seedPromise ??= getChannels()
+    .then((channels) => {
+      channels.forEach((channel) => trustedHosts.add(new URL(channel.url).hostname.toLowerCase()));
+    })
+    .catch((error: unknown) => {
+      // Ne pas mémoriser l'échec : la requête suivante doit pouvoir recharger le catalogue.
+      seedPromise = null;
+      throw error;
+    });
   return seedPromise;
 }
 
