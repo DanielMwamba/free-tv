@@ -45,7 +45,10 @@ export function TvShell() {
         const preferred =
           data.channels.find(
             (channel) => channel.countryCode === "FR" && channel.kind === "hls" && channel.isSecure,
-          ) ?? data.channels.find((channel) => channel.kind === "hls" && channel.isSecure) ?? null;
+          ) ??
+          data.channels.find((channel) => channel.kind === "hls" && channel.isSecure) ??
+          data.channels.find((channel) => channel.kind === "hls") ??
+          null;
         setSelected(preferred);
       })
       .catch((reason: unknown) => {

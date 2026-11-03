@@ -32,7 +32,7 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
     video.removeAttribute("src");
     video.load();
 
-    if (channel.kind !== "hls" || !channel.isSecure) {
+    if (channel.kind !== "hls") {
       updateState("unsupported");
       return () => {
         disposed = true;
@@ -145,6 +145,9 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
         <strong>{statusText}</strong>
         {channel?.isGeoBlocked && <em>GÉO-RESTREINT</em>}
         {channel?.isSd && <em>QUALITÉ SD</em>}
+        {channel && !channel.isSecure && (
+          <em title="Le relais contacte ce diffuseur sans chiffrement.">SOURCE HTTP</em>
+        )}
       </div>
     </section>
   );
