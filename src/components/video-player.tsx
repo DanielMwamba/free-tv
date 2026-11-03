@@ -1,8 +1,9 @@
 "use client";
 
-import { ExternalLink, Radio, RefreshCw, TriangleAlert } from "lucide-react";
+import { ExternalLink, RefreshCw, TriangleAlert, Tv } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { ChannelLogo } from "@/components/channel-logo";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { Channel } from "@/lib/channels";
 import { getEmbedUrl } from "@/lib/embeds";
@@ -10,7 +11,7 @@ import { classifyPlaybackFailure } from "@/lib/playback-error";
 
 type PlayerState = "idle" | "loading" | "ready" | "embed" | "error" | "geoblocked" | "unsupported";
 
-export function VideoPlayer({ channel }: { channel: Channel | null }) {
+export function VideoPlayer({ channel, number }: { channel: Channel | null; number?: number }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [state, setState] = useState<PlayerState>("idle");
   const [attempt, setAttempt] = useState(0);
@@ -95,28 +96,18 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
   }, [channel, attempt, embedUrl]);
 
   const statusText = {
-    idle: "Sélectionnez une chaîne dans l’index.",
-    loading: "Syntonisation du flux…",
-    ready: "Signal reçu. Lancez la lecture.",
+    idle: "Choisissez une chaîne dans le guide.",
+    loading: "Connexion au flux…",
+    ready: "En direct.",
     embed: "Lecteur officiel de la plateforme.",
     error: "Le diffuseur ne répond pas ou bloque la lecture web.",
     geoblocked: "Le diffuseur refuse l’accès : chaîne probablement réservée à son pays de diffusion.",
     unsupported: "Cette source ne peut pas être intégrée directement ici.",
   }[state];
+  const isFailure = state === "error" || state === "geoblocked" || state === "unsupported";
 
   return (
-    <section className="player-panel" aria-labelledby="player-title">
-      <div className="player-heading">
-        <div>
-          <h1 id="player-title">{channel?.cleanName ?? "AUCUNE CHAÎNE"}</h1>
-          <p>{channel ? `${channel.country} · ${channel.kind.toUpperCase()}` : "INDEX MONDIAL"}</p>
-        </div>
-        <span className={`signal signal-${state}`} aria-hidden="true">
-          <Radio size={16} strokeWidth={2.5} />
-          {state === "ready" ? "EN LIGNE" : state === "embed" ? "INTÉGRÉ" : "SIGNAL"}
-        </span>
-      </div>
-
+    <div className="player">
       <div className={`screen screen-${state}`}>
         <video
           ref={videoRef}
@@ -140,47 +131,56 @@ export function VideoPlayer({ channel }: { channel: Channel | null }) {
 
         {state !== "ready" && state !== "embed" && (
           <div className="screen-message" role="status" aria-live="polite">
-            {state === "error" || state === "geoblocked" || state === "unsupported" ? (
-              <TriangleAlert size={32} strokeWidth={1.8} />
-            ) : (
-              <Radio size={34} strokeWidth={1.7} />
-            )}
+            {state === "loading" && <span className="spinner" aria-hidden="true" />}
+            {isFailure && <TriangleAlert className="alert-icon" size={32} strokeWidth={1.8} aria-hidden="true" />}
+            {state === "idle" && <Tv size={34} strokeWidth={1.6} aria-hidden="true" />}
             <strong>{statusText}</strong>
-            {state === "error" && (
-              <Button variant="outline" onClick={() => setAttempt((value) => value + 1)}>
-                <RefreshCw /> Réessayer
-              </Button>
-            )}
-            {channel && (state === "error" || state === "geoblocked" || state === "unsupported") && (
-              <a
-                className={buttonVariants()}
-                href={channel.url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Ouvrir la source <ExternalLink />
-              </a>
+            {isFailure && channel && (
+              <div className="actions">
+                {state === "error" && (
+                  <Button variant="secondary" onClick={() => setAttempt((value) => value + 1)}>
+                    <RefreshCw /> Réessayer
+                  </Button>
+                )}
+                <a className={buttonVariants()} href={channel.url} target="_blank" rel="noreferrer">
+                  Ouvrir la source <ExternalLink />
+                </a>
+              </div>
             )}
           </div>
         )}
-
-        {state === "loading" && <span className="tuning-sweep" aria-hidden="true" />}
       </div>
 
-      <div className="player-meta" aria-live="polite">
-        <span>STATUT</span>
-        <strong>{statusText}</strong>
-        {channel?.isGeoBlocked && <em>GÉO-RESTREINT</em>}
-        {channel?.isSd && <em>QUALITÉ SD</em>}
-        {channel && !channel.isSecure && (
-          <em title="Le relais contacte ce diffuseur sans chiffrement.">SOURCE HTTP</em>
-        )}
-        {channel && state === "embed" && (
-          <a className="meta-link" href={channel.url} target="_blank" rel="noreferrer">
-            Ouvrir sur la plateforme <ExternalLink size={14} aria-hidden="true" />
+      {channel && (
+        <div className="now-playing">
+          <ChannelLogo channel={channel} large />
+          <div>
+            <h1>{channel.cleanName}</h1>
+            <div className="now-meta">
+              {(state === "ready" || state === "embed") && <span className="badge badge-live">En direct</span>}
+              {number !== undefined && <span>Chaîne {number}</span>}
+              <span className="sep" aria-hidden="true">·</span>
+              <span>{channel.country}</span>
+              {channel.isGeoBlocked && <span className="badge badge-warn">Restreinte à sa région</span>}
+              {channel.isSd && <span className="badge">SD</span>}
+              {!channel.isSecure && (
+                <span className="badge" title="Le relais contacte ce diffuseur sans chiffrement.">
+                  Source HTTP
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {channel && state === "embed" && (
+        <p className="status-line">
+          Le lecteur officiel ne signale pas ses erreurs : si rien ne s’affiche,{" "}
+          <a href={channel.url} target="_blank" rel="noreferrer">
+            ouvrir sur la plateforme <ExternalLink size={13} aria-hidden="true" />
           </a>
-        )}
-      </div>
-    </section>
+        </p>
+      )}
+    </div>
   );
 }

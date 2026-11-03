@@ -1,57 +1,63 @@
 # FREE TV — Design
 
-Direction : **télétexte vivant**. FREE TV est un index de diffusion instantané, pas une médiathèque. L’interface reprend la précision fonctionnelle du télétexte (pages numérotées, données denses, couleurs de signal, navigation clavier). La nostalgie reste structurelle — grille, repères, statut — jamais décorative.
+Direction : **guide TV en direct, sobre**. L’interface s’inspire des services de télévision linéaire gratuite (Pluto TV, Samsung TV Plus) : le lecteur domine, un guide des chaînes reste toujours à portée, et l’habillage s’efface derrière les images. Aucune décoration ne doit concurrencer la vidéo.
 
-La note de direction d’origine se trouve dans `.impeccable/surfaces/route.md`. Ce document fixe les décisions stables appliquées dans le code.
+La note de direction `.impeccable/surfaces/route.md` résume la même direction ; ce document fixe les décisions appliquées dans le code.
 
 ## Mise en page
 
-- Bureau : index filtrable des chaînes à gauche, lecteur dominant à droite.
-- Sous 900 px : lecteur en premier, index juste dessous.
-- Sous 620 px : en-tête compacté, lien source en pleine largeur, bandeau défilant masqué.
-- Le lecteur et les messages d’état restent dégagés ; la grille et les codes de page sont réservés à l’index.
+- Barre supérieure collante de 64 px : marque, navigation (Chaînes, Source).
+- Bureau (≥ 1024 px) : lecteur 16:9 à gauche, collant ; guide des chaînes à droite (`clamp(340px, 28vw, 460px)`), défilant dans sa propre colonne.
+- Sous 1024 px : une seule colonne, lecteur d’abord, guide ensuite.
+- Sous 640 px : lecteur bord à bord, sans arrondi ; libellés de navigation masqués (icônes seules, avec nom accessible).
+- Au-delà de 1800 px (téléviseurs) : taille de base portée à 18 px.
+- Le guide affiche les chaînes par lots de 80 avec « Afficher plus », au lieu d’une limite fixe.
 
 ## Couleurs
 
-Jetons définis dans `src/app/globals.css` (`:root`). Thème sombre uniquement (`color-scheme: dark`).
+Jetons définis dans `src/app/globals.css` (`:root`) et reliés aux variables shadcn. Thème sombre uniquement (`color-scheme: dark`).
 
 | Jeton | Valeur | Usage |
 | --- | --- | --- |
-| `--ink` | `#050505` | Fond |
-| `--paper` | `#f6f2e8` | Texte, filets principaux |
-| `--cyan` | `#24d8ff` | Action, sélection, focus (`--ring`) |
-| `--yellow` | `#ffd633` | Repères : numéros de page, étiquettes |
-| `--red` | `#ff4d6d` | Erreurs, signal, avertissements |
-| `--blue` | `#1536d8` | Bandeau d’information, code de page actif |
-| `--muted-foreground` | `#c4c0b7` | Texte secondaire |
-| `--border` | `#4f4d48` | Filets secondaires |
+| `--bg` | `#0b0d12` | Fond de page |
+| `--surface` | `#12151c` | Panneau du guide |
+| `--surface-2` | `#1a1e27` | Champs, survol, badges |
+| `--surface-3` | `#242a36` | Ligne active |
+| `--line` | `#262b36` | Filets |
+| `--text` | `#eceef3` | Texte principal |
+| `--text-muted` | `#a1a9b8` | Texte secondaire |
+| `--text-faint` | `#7a8293` | Numéros, mentions |
+| `--brand` / `--brand-strong` | `#4f8cff` / `#78a6ff` | Action principale, sélection, focus |
+| `--live` | `#f25555` | Badge « En direct » uniquement |
+| `--warn` | `#f2b134` | Restriction régionale, alertes de lecture |
+| `--ok` | `#3ccf7a` | Disponibilité confirmée |
 
-Les rayons de bordure sont tous à 0.
+Rayons : 8 px (contrôles), 10 px (lignes, champs), 12–14 px (lecteur, guide).
 
 ## Typographie
 
-Une seule famille monospace, Azeret Mono (`next/font`, variable `--font-broadcast`), parce que l’interface est un index de données et de mesures.
+Inter (`next/font`, variable `--font-app`), graisses 500 à 700. Les numéros de chaîne utilisent les chiffres tabulaires.
+
+## Composants
+
+- **Ligne de chaîne** : logo 44 px (initiales si le logo manque, échoue ou n’est pas en HTTPS), nom, numéro · pays, étiquettes discrètes (« Région », plateforme intégrée). La ligne active porte un fond plus clair et un filet d’accent à gauche.
+- **Bandeau de lecture** : logo 56 px, nom, badge « En direct », numéro, pays, badges de restriction, SD ou source HTTP.
+- **Boutons** : base shadcn, hauteur 40 px par défaut (44 px en `lg`).
 
 ## Mouvement
 
-- Une seule animation signature : `tuning-sweep`, un balayage de syntonisation lors d’un changement de chaîne.
-- `skeleton-scan` sert uniquement aux états de chargement.
-- `prefers-reduced-motion: reduce` neutralise animations et défilement fluide.
+- Indicateur de chargement circulaire dans le lecteur, squelettes scintillants dans le guide.
+- `prefers-reduced-motion: reduce` neutralise toutes les animations.
 
 ## États et contenu
 
-- Recherche, pays, chargement, erreur, vide et lien de secours sont explicites.
-- Le format de chaque chaîne est affiché : HLS, YT, DM, TW, LIEN.
-- Les sources HTTP sont signalées par « SOURCE HTTP » ; les lecteurs officiels par l’état « INTÉGRÉ ».
-- En cas d’échec : « Réessayer » et « Ouvrir la source ».
-- Attribution visible à la playlist Free-TV/IPTV et rappel que la disponibilité dépend de la source et de la région.
+- Chargement, catalogue indisponible, recherche vide, échec de lecture et restriction régionale ont chacun un message et une action (« Recharger », « Effacer les filtres », « Réessayer », « Ouvrir la source »).
+- Sous un lecteur officiel intégré, un lien « ouvrir sur la plateforme » reste affiché, car l’iframe ne signale pas ses échecs.
+- Rappel en pied de page : FREE TV n’héberge aucun flux.
 
 ## Accessibilité
 
 - Intitulés en français, `lang="fr"`.
-- Focus clavier fort en cyan sur tous les contrôles.
-- Cibles tactiles d’au moins 44 px.
-
-## Risque à surveiller
-
-Le télétexte devient un costume si chaque zone reçoit une grille ou un effet. Concentrer la forme sur l’index, les codes de page et le balayage.
+- Contour de focus de 2 px en `--brand-strong` sur tous les contrôles.
+- Cibles tactiles d’au moins 40–44 px ; la ligne active expose `aria-current`.
+- `/` place le focus dans la recherche.

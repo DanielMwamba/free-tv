@@ -1,8 +1,10 @@
 "use client";
 
-import { ExternalLink, Search, TvMinimalPlay, X } from "lucide-react";
+import { ExternalLink, Search, Tv, X } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { ChannelLogo } from "@/components/channel-logo";
 import { Button } from "@/components/ui/button";
 import { VideoPlayer } from "@/components/video-player";
 import type { Channel } from "@/lib/channels";
@@ -13,25 +15,22 @@ type CatalogResponse = {
   error?: string;
 };
 
-const DISPLAY_LIMIT = 140;
+const PAGE_SIZE = 80;
 
 const FORMAT_LABELS: Record<Channel["kind"], string> = {
   hls: "HLS",
-  youtube: "YT",
-  dailymotion: "DM",
-  twitch: "TW",
-  external: "LIEN",
+  youtube: "YouTube",
+  dailymotion: "Dailymotion",
+  twitch: "Twitch",
+  external: "Lien",
 };
-
-function pageCode(index: number) {
-  return `P${String(100 + (index % 900)).padStart(3, "0")}`;
-}
 
 export function TvShell() {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selected, setSelected] = useState<Channel | null>(null);
   const [query, setQuery] = useState("");
   const [country, setCountry] = useState("TOUS");
+  const [visible, setVisible] = useState(PAGE_SIZE);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
@@ -51,7 +50,11 @@ export function TvShell() {
         setUpdatedAt(data.updatedAt ?? null);
         const preferred =
           data.channels.find(
-            (channel) => channel.countryCode === "FR" && channel.kind === "hls" && channel.isSecure,
+            (channel) =>
+              channel.countryCode === "FR" &&
+              channel.kind === "hls" &&
+              channel.isSecure &&
+              !channel.isGeoBlocked,
           ) ??
           data.channels.find((channel) => channel.kind === "hls" && channel.isSecure) ??
           data.channels.find((channel) => channel.kind === "hls") ??
@@ -77,6 +80,12 @@ export function TvShell() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  // Numéro de chaîne stable : position dans le catalogue, comme une télécommande.
+  const numbers = useMemo(
+    () => new Map(channels.map((channel, index) => [channel.id, index + 1])),
+    [channels],
+  );
 
   const countries = useMemo(() => {
     const counts = new Map<string, { label: string; count: number }>();
@@ -104,152 +113,165 @@ export function TvShell() {
     });
   }, [channels, country, query]);
 
+  const resetFilters = () => {
+    setCountry("TOUS");
+    setQuery("");
+    setVisible(PAGE_SIZE);
+  };
+
   return (
-    <main className="broadcast-shell">
-      <header className="masthead">
-        <a className="brand" href="#top" aria-label="FREE TV, accueil">
-          <span>FREE</span>
-          <strong>TV</strong>
-        </a>
-        <div className="masthead-copy">
-          <p>INDEX DE DIFFUSION PUBLIQUE</p>
-          <span>{channels.length ? `${channels.length} CHAÎNES RÉFÉRENCÉES` : "CHARGEMENT DU RÉSEAU"}</span>
-        </div>
-        <a
-          className="source-link"
-          href="https://github.com/Free-TV/IPTV"
-          target="_blank"
-          rel="noreferrer"
-        >
-          SOURCE <ExternalLink size={15} />
-        </a>
+    <div className="app">
+      <header className="topbar">
+        <Link className="brand" href="/" aria-label="FREE TV, accueil">
+          <span className="brand-mark" aria-hidden="true">
+            <Tv size={18} />
+          </span>
+          FREE TV
+        </Link>
+        <nav className="topnav" aria-label="Navigation principale">
+          <Link href="/" aria-current="page">
+            <Tv size={16} aria-hidden="true" />
+            <span>Chaînes</span>
+          </Link>
+          <a href="https://github.com/Free-TV/IPTV" target="_blank" rel="noreferrer">
+            <ExternalLink size={16} aria-hidden="true" />
+            <span>Source</span>
+          </a>
+        </nav>
       </header>
 
-      <div className="ticker" aria-label="Informations de service">
-        <span>● SERVICE PERSONNEL</span>
-        <p>Les flux restent hébergés par leurs diffuseurs · disponibilité selon la région</p>
-        <time>
-          {updatedAt
-            ? `MAJ ${new Date(updatedAt).toLocaleTimeString("fr", { hour: "2-digit", minute: "2-digit" })}`
-            : "MAJ —:—"}
-        </time>
-      </div>
+      <main className="layout">
+        <section className="stage" aria-label="Lecteur">
+          <VideoPlayer channel={selected} number={selected ? numbers.get(selected.id) : undefined} />
+        </section>
 
-      <div className="workspace" id="top">
-        <aside className="channel-index" aria-label="Index des chaînes">
-          <div className="index-title">
-            <div>
-              <h2>CHAÎNES</h2>
-              <p>{filtered.length} résultats · / pour chercher</p>
+        <aside className="guide" aria-label="Guide des chaînes">
+          <div className="guide-head">
+            <div className="guide-title">
+              <h2>Chaînes</h2>
+              <span>{loading ? "Chargement…" : `${filtered.length} sur ${channels.length}`}</span>
             </div>
-            <TvMinimalPlay aria-hidden="true" />
+
+            <label className="search">
+              <span className="sr-only">Rechercher une chaîne ou un pays</span>
+              <Search aria-hidden="true" size={18} />
+              <input
+                ref={searchRef}
+                type="search"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setVisible(PAGE_SIZE);
+                }}
+                placeholder="Rechercher une chaîne ou un pays"
+                autoComplete="off"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={() => setQuery("")}
+                  aria-label="Effacer la recherche"
+                >
+                  <X size={16} />
+                </button>
+              ) : (
+                <kbd aria-hidden="true">/</kbd>
+              )}
+            </label>
+
+            <label>
+              <span className="sr-only">Filtrer par pays</span>
+              <select
+                className="select"
+                value={country}
+                onChange={(event) => {
+                  setCountry(event.target.value);
+                  setVisible(PAGE_SIZE);
+                }}
+              >
+                <option value="TOUS">Tous les pays ({channels.length})</option>
+                {countries.map((item) => (
+                  <option key={item.code} value={item.code}>
+                    {item.label} ({item.count})
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
-
-          <label className="search-field">
-            <span className="sr-only">Rechercher une chaîne ou un pays</span>
-            <Search aria-hidden="true" size={18} />
-            <input
-              ref={searchRef}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="CHAÎNE OU PAYS"
-              autoComplete="off"
-            />
-            {query && (
-              <button type="button" onClick={() => setQuery("")} aria-label="Effacer la recherche">
-                <X size={17} />
-              </button>
-            )}
-          </label>
-
-          <label className="country-field">
-            <span>PAYS</span>
-            <select value={country} onChange={(event) => setCountry(event.target.value)}>
-              <option value="TOUS">TOUS LES PAYS ({channels.length})</option>
-              {countries.map((item) => (
-                <option key={item.code} value={item.code}>
-                  {item.label.toUpperCase()} ({item.count})
-                </option>
-              ))}
-            </select>
-          </label>
 
           <div className="channel-list" aria-busy={loading}>
             {loading &&
               Array.from({ length: 8 }, (_, index) => (
-                <div className="channel-skeleton" key={index} aria-hidden="true" />
+                <div className="skeleton-row" key={index} aria-hidden="true" />
               ))}
 
             {error && (
-              <div className="index-state error-state" role="alert">
-                <strong>CATALOGUE HORS LIGNE</strong>
+              <div className="guide-state" role="alert">
+                <strong>Catalogue indisponible</strong>
                 <p>{error}</p>
                 <Button onClick={() => window.location.reload()}>Recharger</Button>
               </div>
             )}
 
             {!loading && !error && filtered.length === 0 && (
-              <div className="index-state">
-                <strong>AUCUN SIGNAL TROUVÉ</strong>
-                <p>Modifiez le pays ou la recherche.</p>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setCountry("TOUS");
-                    setQuery("");
-                  }}
-                >
+              <div className="guide-state">
+                <strong>Aucune chaîne trouvée</strong>
+                <p>Essayez un autre nom ou un autre pays.</p>
+                <Button variant="outline" onClick={resetFilters}>
                   Effacer les filtres
                 </Button>
               </div>
             )}
 
-            {filtered.slice(0, DISPLAY_LIMIT).map((channel) => {
-              const absoluteIndex = channels.findIndex((item) => item.id === channel.id);
+            {filtered.slice(0, visible).map((channel) => {
               const isActive = selected?.id === channel.id;
               return (
                 <button
                   type="button"
                   className="channel-row"
                   data-active={isActive || undefined}
-                  aria-pressed={isActive}
+                  aria-current={isActive || undefined}
                   key={channel.id}
                   onClick={() => setSelected(channel)}
                 >
-                  <span className="page-code">{pageCode(absoluteIndex)}</span>
-                  <span className="channel-name">
+                  <ChannelLogo channel={channel} />
+                  <span className="channel-text">
                     <strong>{channel.cleanName}</strong>
-                    <small>{channel.country}</small>
+                    <small>
+                      <span className="channel-number">{numbers.get(channel.id)}</span> · {channel.country}
+                    </small>
                   </span>
                   <span className="row-tags">
                     {channel.isGeoBlocked && (
-                      <span className="format-tag region-tag" title="Disponible seulement dans son pays de diffusion">
-                        RÉGION
+                      <span className="tag tag-region" title="Disponible seulement dans son pays de diffusion">
+                        Région
                       </span>
                     )}
-                    <span className={`format-tag format-${channel.kind}`}>
-                      {FORMAT_LABELS[channel.kind]}
-                    </span>
+                    {channel.kind !== "hls" && <span className="tag">{FORMAT_LABELS[channel.kind]}</span>}
                   </span>
                 </button>
               );
             })}
 
-            {filtered.length > DISPLAY_LIMIT && (
-              <p className="result-limit">
-                {DISPLAY_LIMIT} résultats affichés sur {filtered.length}. Affinez la recherche.
-              </p>
+            {filtered.length > visible && (
+              <div className="load-more">
+                <Button variant="secondary" onClick={() => setVisible((value) => value + PAGE_SIZE)}>
+                  Afficher plus ({filtered.length - visible} restantes)
+                </Button>
+              </div>
             )}
           </div>
         </aside>
+      </main>
 
-        <VideoPlayer channel={selected} />
-      </div>
-
-      <footer className="service-footer">
-        <p>FREE TV n’héberge aucun flux. Les droits et la disponibilité relèvent de chaque source.</p>
-        <span>VERSION 0.1 · USAGE PERSONNEL</span>
+      <footer className="footer">
+        <p>
+          FREE TV n’héberge aucun flux : droits et disponibilité relèvent de chaque diffuseur.
+          {updatedAt &&
+            ` Catalogue mis à jour à ${new Date(updatedAt).toLocaleTimeString("fr", { hour: "2-digit", minute: "2-digit" })}.`}
+        </p>
       </footer>
-    </main>
+    </div>
   );
 }
