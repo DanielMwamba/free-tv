@@ -5,6 +5,9 @@ import { isPrivateAddress, rewriteHlsManifest } from "./hls-proxy";
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 const MAX_REDIRECTS = 4;
 const MAX_MANIFEST_LENGTH = 2_000_000;
+const CATALOGUE_TTL_MS = 60 * 60 * 1000;
+const DISCOVERED_HOST_TTL_MS = 6 * 60 * 60 * 1000;
+const MAX_DISCOVERED_HOSTS = 1_000;
 
 export type UpstreamRequest = (
   url: URL,
@@ -17,6 +20,7 @@ export type StreamRelayOptions = {
   loadCatalogueUrls: () => Promise<string[]>;
   /** Requête vers le diffuseur, sans suivi automatique des redirections. */
   requestUpstream: UpstreamRequest;
+  now?: () => number;
 };
 
 class RelayError extends Error {
@@ -45,22 +49,69 @@ export function assertAllowedDestination(url: URL) {
   }
 }
 
-export function createStreamRelay({ loadCatalogueUrls, requestUpstream }: StreamRelayOptions) {
-  const trustedHosts = new Set<string>();
-  let seedPromise: Promise<void> | null = null;
+/**
+ * Hôtes autorisés : ceux du catalogue (rechargés toutes les heures) et ceux découverts
+ * dans des manifestes ou redirections autorisés, avec expiration et taille bornée.
+ */
+function createHostRegistry(loadCatalogueUrls: () => Promise<string[]>, now: () => number) {
+  let catalogueHosts: Set<string> | null = null;
+  let loadedAt = 0;
+  let pending: Promise<Set<string>> | null = null;
+  const discovered = new Map<string, number>();
 
-  function seedTrustedHosts() {
-    seedPromise ??= loadCatalogueUrls()
+  async function catalogue() {
+    if (catalogueHosts && now() - loadedAt < CATALOGUE_TTL_MS) return catalogueHosts;
+
+    // Ne pas mémoriser l'échec : la requête suivante doit pouvoir recharger le catalogue.
+    pending ??= loadCatalogueUrls()
       .then((urls) => {
-        urls.forEach((url) => trustedHosts.add(new URL(url).hostname.toLowerCase()));
+        catalogueHosts = new Set(urls.map((url) => new URL(url).hostname.toLowerCase()));
+        loadedAt = now();
+        return catalogueHosts;
       })
-      .catch((error: unknown) => {
-        // Ne pas mémoriser l'échec : la requête suivante doit pouvoir recharger le catalogue.
-        seedPromise = null;
-        throw error;
+      .finally(() => {
+        pending = null;
       });
-    return seedPromise;
+
+    try {
+      return await pending;
+    } catch (error) {
+      if (catalogueHosts) return catalogueHosts;
+      throw error;
+    }
   }
+
+  return {
+    catalogue,
+    has(hostname: string) {
+      const host = hostname.toLowerCase();
+      if (catalogueHosts?.has(host)) return true;
+      const expiresAt = discovered.get(host);
+      if (expiresAt === undefined) return false;
+      if (expiresAt > now()) return true;
+      discovered.delete(host);
+      return false;
+    },
+    discover(hostname: string) {
+      const host = hostname.toLowerCase();
+      if (catalogueHosts?.has(host)) return;
+      discovered.delete(host);
+      discovered.set(host, now() + DISCOVERED_HOST_TTL_MS);
+      while (discovered.size > MAX_DISCOVERED_HOSTS) {
+        const oldest = discovered.keys().next().value;
+        if (oldest === undefined) break;
+        discovered.delete(oldest);
+      }
+    },
+  };
+}
+
+export function createStreamRelay({
+  loadCatalogueUrls,
+  requestUpstream,
+  now = Date.now,
+}: StreamRelayOptions) {
+  const trustedHosts = createHostRegistry(loadCatalogueUrls, now);
 
   async function fetchUpstream(initialUrl: URL, range: string | null, signal?: AbortSignal) {
     let current = initialUrl;
@@ -84,7 +135,7 @@ export function createStreamRelay({ loadCatalogueUrls, requestUpstream }: Stream
       const location = response.headers.get("location");
       if (!location) throw new RelayError("Redirection sans destination.", 502);
       current = new URL(location, current);
-      trustedHosts.add(current.hostname.toLowerCase());
+      trustedHosts.discover(current.hostname.toLowerCase());
     }
 
     throw new RelayError("Trop de redirections du diffuseur.", 502);
@@ -101,7 +152,7 @@ export function createStreamRelay({ loadCatalogueUrls, requestUpstream }: Stream
     }
 
     try {
-      await seedTrustedHosts();
+      await trustedHosts.catalogue();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Catalogue indisponible.";
       return new Response(`Catalogue indisponible. ${message}`, { status: 503 });
@@ -132,7 +183,7 @@ export function createStreamRelay({ loadCatalogueUrls, requestUpstream }: Stream
           return new Response("Manifeste trop volumineux.", { status: 413 });
         }
         const rewritten = rewriteHlsManifest(manifest, finalUrl.toString(), (resource) => {
-          trustedHosts.add(resource.hostname.toLowerCase());
+          trustedHosts.discover(resource.hostname.toLowerCase());
         });
         return new Response(rewritten, { status: response.status, headers });
       }

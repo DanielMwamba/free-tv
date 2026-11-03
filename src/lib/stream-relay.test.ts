@@ -100,3 +100,52 @@ test("relaie le statut d'erreur du diffuseur", async () => {
 
   assert.equal((await relay(CATALOGUE[0], null)).status, 451);
 });
+
+test("recharge le catalogue expiré et garde l'ancien si le rechargement échoue", async () => {
+  let clock = 0;
+  let catalogue = CATALOGUE;
+  let failing = false;
+  const { requestUpstream } = upstreamFrom({
+    [CATALOGUE[0]]: manifest("#EXTM3U"),
+    "https://new.example.test/index.m3u8": manifest("#EXTM3U"),
+  });
+  const { relay } = createStreamRelay({
+    loadCatalogueUrls: async () => {
+      if (failing) throw new Error("réseau coupé");
+      return catalogue;
+    },
+    requestUpstream,
+    now: () => clock,
+  });
+
+  assert.equal((await relay(CATALOGUE[0], null)).status, 200);
+
+  failing = true;
+  clock += 2 * 60 * 60 * 1000;
+  assert.equal((await relay(CATALOGUE[0], null)).status, 200);
+
+  failing = false;
+  catalogue = ["https://new.example.test/index.m3u8"];
+  assert.equal((await relay("https://new.example.test/index.m3u8", null)).status, 200);
+  assert.equal((await relay(CATALOGUE[0], null)).status, 403);
+});
+
+test("oublie les hôtes découverts après expiration", async () => {
+  let clock = 0;
+  const segment = "https://cdn.example.test/segment-1.ts";
+  const { requestUpstream } = upstreamFrom({
+    [CATALOGUE[0]]: manifest(`#EXTM3U\n#EXTINF:6,\n${segment}`),
+    [segment]: () => new Response("video", { headers: { "Content-Type": "video/mp2t" } }),
+  });
+  const { relay } = createStreamRelay({
+    loadCatalogueUrls: async () => CATALOGUE,
+    requestUpstream,
+    now: () => clock,
+  });
+
+  await relay(CATALOGUE[0], null);
+  assert.equal((await relay(segment, null)).status, 200);
+
+  clock += 7 * 60 * 60 * 1000;
+  assert.equal((await relay(segment, null)).status, 403);
+});
