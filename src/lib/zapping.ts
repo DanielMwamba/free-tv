@@ -25,6 +25,22 @@ export function appendDigit(buffer: string, digit: string): string {
   return next.slice(-MAX_NUMBER_DIGITS);
 }
 
+type ShortcutEvent = {
+  target: EventTarget | null;
+  altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+};
+
+const TYPING_TAGS = new Set(["INPUT", "SELECT", "TEXTAREA"]);
+
+// Les raccourcis à une touche ne doivent jamais voler la saisie d'un champ ni un raccourci système.
+export function isShortcutIgnored(event: ShortcutEvent): boolean {
+  if (event.altKey || event.ctrlKey || event.metaKey) return true;
+  const target = event.target as { tagName?: string; isContentEditable?: boolean } | null;
+  return Boolean(target && (TYPING_TAGS.has(target.tagName ?? "") || target.isContentEditable));
+}
+
 const SHARE_PARAM = "c";
 
 export function readSharedChannelId(search: string): string | null {

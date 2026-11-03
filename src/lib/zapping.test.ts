@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   appendDigit,
   channelAtNumber,
+  isShortcutIgnored,
   readSharedChannelId,
   stepChannel,
   withSharedChannel,
@@ -43,4 +44,13 @@ test("lit et écrit l'identifiant partagé dans l'URL", () => {
   assert.equal(readSharedChannelId(""), null);
   assert.equal(withSharedChannel("https://tv.test/?x=1", "arte"), "https://tv.test/?x=1&c=arte");
   assert.equal(withSharedChannel("https://tv.test/?c=arte", null), "https://tv.test/");
+});
+
+test("ignore les raccourcis pendant la saisie ou avec un modificateur", () => {
+  const keys = { altKey: false, ctrlKey: false, metaKey: false };
+  assert.equal(isShortcutIgnored({ ...keys, target: null }), false);
+  assert.equal(isShortcutIgnored({ ...keys, target: { tagName: "BUTTON" } as unknown as EventTarget }), false);
+  assert.equal(isShortcutIgnored({ ...keys, target: { tagName: "INPUT" } as unknown as EventTarget }), true);
+  assert.equal(isShortcutIgnored({ ...keys, target: { tagName: "DIV", isContentEditable: true } as unknown as EventTarget }), true);
+  assert.equal(isShortcutIgnored({ ...keys, ctrlKey: true, target: null }), true);
 });

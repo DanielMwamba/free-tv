@@ -1,7 +1,19 @@
 "use client";
 
-import { Check, ExternalLink, RefreshCw, Share2, Star, TriangleAlert, Tv } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Cast,
+  Check,
+  ExternalLink,
+  Maximize,
+  Minimize,
+  PictureInPicture2,
+  RefreshCw,
+  Share2,
+  Star,
+  TriangleAlert,
+  Tv,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ChannelLogo } from "@/components/channel-logo";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -9,7 +21,7 @@ import type { Channel } from "@/lib/channels";
 import { getEmbedUrl } from "@/lib/embeds";
 import { classifyPlaybackFailure } from "@/lib/playback-error";
 import { audioOptions, AUTO_LEVEL, qualityOptions, type TrackOption } from "@/lib/tracks";
-import { withSharedChannel } from "@/lib/zapping";
+import { isShortcutIgnored, withSharedChannel } from "@/lib/zapping";
 
 type PlayerState = "idle" | "loading" | "ready" | "embed" | "error" | "geoblocked" | "unsupported";
 type HlsInstance = InstanceType<typeof import("hls.js").default>;
@@ -19,10 +31,19 @@ type VideoPlayerProps = {
   number?: number;
   isFavorite: boolean;
   onToggleFavorite: () => void;
+  osd?: string | null;
 };
 
-export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite }: VideoPlayerProps) {
+const TV_IDLE_DELAY = 3500;
+
+export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite, osd }: VideoPlayerProps) {
+  const playerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const idleTimer = useRef<number | undefined>(undefined);
+  const [isTvMode, setIsTvMode] = useState(false);
+  const [isIdle, setIsIdle] = useState(false);
+  const [isPip, setIsPip] = useState(false);
+  const [canCast, setCanCast] = useState(false);
   const [state, setState] = useState<PlayerState>("idle");
   const [attempt, setAttempt] = useState(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -130,6 +151,84 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite }: V
     };
   }, [channel, attempt, embedUrl]);
 
+  const toggleTvMode = useCallback(() => {
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+    else void playerRef.current?.requestFullscreen().catch(() => undefined);
+  }, []);
+
+  const wake = useCallback(() => {
+    setIsIdle(false);
+    window.clearTimeout(idleTimer.current);
+    idleTimer.current = window.setTimeout(() => setIsIdle(true), TV_IDLE_DELAY);
+  }, []);
+
+  useEffect(() => {
+    const onFullscreenChange = () => setIsTvMode(document.fullscreenElement === playerRef.current);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isShortcutIgnored(event) || event.key.toLowerCase() !== "f") return;
+      event.preventDefault();
+      toggleTvMode();
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [toggleTvMode]);
+
+  // En mode TV, le bandeau s'efface après quelques secondes sans activité et revient à chaque
+  // geste ou changement de chaîne, comme l'incrustation d'un téléviseur.
+  useEffect(() => {
+    if (!isTvMode) return;
+    queueMicrotask(wake);
+    const events = ["pointermove", "pointerdown", "keydown"] as const;
+    events.forEach((name) => window.addEventListener(name, wake));
+    return () => {
+      events.forEach((name) => window.removeEventListener(name, wake));
+      window.clearTimeout(idleTimer.current);
+    };
+  }, [isTvMode, channel, wake]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const onEnter = () => setIsPip(true);
+    const onLeave = () => setIsPip(false);
+    video.addEventListener("enterpictureinpicture", onEnter);
+    video.addEventListener("leavepictureinpicture", onLeave);
+
+    // Remote Playback API : AirPlay ou Chromecast selon le navigateur. Le bouton n'apparaît que
+    // si le navigateur trouve un appareil capable de lire ce flux.
+    const remote = video.remote;
+    let watchId: number | undefined;
+    let cancelled = false;
+    remote
+      ?.watchAvailability((available) => setCanCast(available))
+      .then((id) => {
+        if (cancelled) void remote.cancelWatchAvailability(id).catch(() => undefined);
+        else watchId = id;
+      })
+      .catch(() => setCanCast(false));
+
+    return () => {
+      cancelled = true;
+      video.removeEventListener("enterpictureinpicture", onEnter);
+      video.removeEventListener("leavepictureinpicture", onLeave);
+      if (watchId !== undefined) void remote?.cancelWatchAvailability(watchId).catch(() => undefined);
+    };
+  }, []);
+
+  const togglePip = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (document.pictureInPictureElement) void document.exitPictureInPicture().catch(() => undefined);
+    else void video.requestPictureInPicture().catch(() => undefined);
+  };
+  const cast = () => void videoRef.current?.remote.prompt().catch(() => undefined);
+  const canPip = typeof document !== "undefined" && document.pictureInPictureEnabled;
+  const canTvMode = typeof document !== "undefined" && document.fullscreenEnabled;
+
   const statusText = {
     idle: "Choisissez une chaîne dans le guide.",
     loading: "Connexion au flux…",
@@ -172,8 +271,13 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite }: V
   const isFailure = state === "error" || state === "geoblocked" || state === "unsupported";
 
   return (
-    <div className="player">
+    <div ref={playerRef} className="player" data-idle={isTvMode && isIdle ? "true" : undefined}>
       <div className={`screen screen-${state}`}>
+        {osd && (
+          <div className="osd" role="status" aria-live="polite">
+            {osd}
+          </div>
+        )}
         <video
           ref={videoRef}
           controls
@@ -259,6 +363,35 @@ export function VideoPlayer({ channel, number, isFavorite, onToggleFavorite }: V
                   ))}
                 </select>
               </label>
+            )}
+            {state === "ready" && canPip && (
+              <Button
+                variant="outline"
+                size="icon"
+                aria-pressed={isPip}
+                aria-label="Image dans l’image"
+                title="Image dans l’image"
+                onClick={togglePip}
+              >
+                <PictureInPicture2 />
+              </Button>
+            )}
+            {state === "ready" && canCast && (
+              <Button variant="outline" size="icon" aria-label="Diffuser sur un appareil" title="Diffuser sur un appareil" onClick={cast}>
+                <Cast />
+              </Button>
+            )}
+            {canTvMode && (
+              <Button
+                variant="outline"
+                size="icon"
+                aria-pressed={isTvMode}
+                aria-label={isTvMode ? "Quitter le mode TV" : "Mode TV (plein écran)"}
+                title={isTvMode ? "Quitter le mode TV (F)" : "Mode TV (F)"}
+                onClick={toggleTvMode}
+              >
+                {isTvMode ? <Minimize /> : <Maximize />}
+              </Button>
             )}
             {state === "ready" && audios.length > 0 && (
               <label className="track-select">

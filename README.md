@@ -37,6 +37,8 @@ pnpm build
 - L’étoile ajoute une chaîne aux favoris. Les onglets « Favoris » et « Récents » (12 dernières chaînes ouvertes) sont enregistrés dans le `localStorage` du navigateur : ils restent propres à chaque appareil et ne quittent jamais celui-ci.
 - Comme avec une télécommande : `Page ↓` / `Page ↑` passent à la chaîne suivante ou précédente de la liste affichée ; taper un numéro puis `Entrée` (ou attendre 1,5 s) ouvre la chaîne correspondante.
 - Pour les flux HLS qui en proposent plusieurs, le bandeau du lecteur permet de choisir la qualité (« Auto » laisse `hls.js` s’adapter au débit) et la piste audio.
+- Le mode TV (bouton plein écran ou touche `F`) affiche le lecteur seul, avec une incrustation de la chaîne qui s’efface après 3,5 s d’inactivité ; le zapping et la saisie de numéro y restent actifs.
+- « Image dans l’image » détache la vidéo HLS dans une fenêtre flottante. Le bouton « Diffuser » (Remote Playback API : AirPlay, Chromecast) n’apparaît que si le navigateur trouve un appareil capable de lire le flux ; les navigateurs Chromium ne diffusent pas les flux lus par `hls.js` (Media Source Extensions), ce bouton y reste donc généralement masqué.
 - L’adresse de la page contient la chaîne en cours (`?c=<identifiant>`) : le bouton « Partager » envoie ou copie ce lien, qui rouvre directement la même chaîne.
 
 ## Disponibilité des flux

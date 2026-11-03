@@ -43,6 +43,8 @@ Inter (`next/font`, variable `--font-app`), graisses 500 à 700. Les numéros de
 - **Ligne de chaîne** : logo 44 px (initiales si le logo manque, échoue ou n’est pas en HTTPS), nom, numéro · pays, étiquettes discrètes (« Région », plateforme intégrée). La ligne active porte un fond plus clair et un filet d’accent à gauche.
 - **Bandeau de lecture** : logo 56 px, nom, badge « En direct », numéro, pays, badges de restriction, SD ou source HTTP.
 - **Choix de qualité et de piste audio** : listes natives compactes dans le bandeau de lecture, affichées seulement quand le flux propose au moins deux choix.
+- **Mode TV** : plein écran du lecteur (`F`). Le bandeau de lecture devient une incrustation en dégradé en haut de l’image, laissant les commandes natives en bas ; il s’efface avec le curseur après 3,5 s sans activité et revient au moindre geste ou changement de chaîne. Le numéro composé s’affiche en grand au centre.
+- **Image dans l’image, Diffuser, Mode TV** : boutons icône de 40 px avec nom accessible et infobulle ; « Diffuser » n’est rendu que si un appareil est disponible.
 - **Puces de catégorie** : pilules de 32 px défilant horizontalement sans barre visible ; la puce active passe en texte sombre sur fond clair, comme les rangées de genres des plateformes de télévision gratuite.
 - **Pastille de disponibilité** : point de 8 px devant le numéro (vert en ligne, orange refusé dans le pays du serveur, rouge injoignable), doublé d’un texte pour les lecteurs d’écran.
 - **Interrupteur « Disponibles maintenant »** : case native masquée et piste visuelle, avec l’avancement du contrôle à droite.
@@ -67,4 +69,5 @@ Inter (`next/font`, variable `--font-app`), graisses 500 à 700. Les numéros de
 - Cibles tactiles d’au moins 40–44 px ; la ligne active expose `aria-current`.
 - `/` place le focus dans la recherche.
 - `Page ↓` / `Page ↑` (et les touches chaîne d’une télécommande) zappent dans la liste affichée ; les chiffres composent un numéro, confirmé par `Entrée` ou après 1,5 s. Un bandeau (OSD) annonce la chaîne via `role="status"`. Ces raccourcis sont ignorés pendant la saisie dans un champ.
+- `F` bascule le mode TV (ignoré pendant une saisie) ; `Échap` le quitte.
 - « Partager » utilise le partage natif, sinon le presse-papiers.

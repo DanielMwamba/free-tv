@@ -16,6 +16,7 @@ import { FAVORITES_KEY, RECENTS_KEY, pushRecent, toggleId } from "@/lib/library"
 import {
   appendDigit,
   channelAtNumber,
+  isShortcutIgnored,
   readSharedChannelId,
   stepChannel,
   withSharedChannel,
@@ -193,13 +194,7 @@ export function TvShell() {
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      const isTyping =
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLSelectElement ||
-        target instanceof HTMLTextAreaElement ||
-        target?.isContentEditable;
-      if (isTyping || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (isShortcutIgnored(event)) return;
 
       if (event.key === "/") {
         event.preventDefault();
@@ -250,12 +245,8 @@ export function TvShell() {
 
       <main className="layout">
         <section className="stage" aria-label="Lecteur">
-          {(numberEntry || osd) && (
-            <div className="osd" role="status" aria-live="polite">
-              {numberEntry ? `Chaîne ${numberEntry}_` : osd}
-            </div>
-          )}
           <VideoPlayer
+            osd={numberEntry ? `Chaîne ${numberEntry}_` : osd}
             channel={selected}
             number={selected ? numbers.get(selected.id) : undefined}
             isFavorite={selected ? favorites.includes(selected.id) : false}
@@ -481,7 +472,7 @@ export function TvShell() {
       <footer className="footer">
         <p>
           Raccourcis : <kbd>/</kbd> rechercher · <kbd>Page ↑</kbd> <kbd>Page ↓</kbd> chaîne précédente
-          ou suivante · chiffres puis <kbd>Entrée</kbd> pour aller à un numéro.
+          ou suivante · chiffres puis <kbd>Entrée</kbd> pour aller à un numéro · <kbd>F</kbd> mode TV.
         </p>
         <p>
           FREE TV n’héberge aucun flux : droits et disponibilité relèvent de chaque diffuseur.
