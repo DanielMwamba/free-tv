@@ -29,3 +29,15 @@ test("classe les plateformes et ignore les URL invalides", () => {
   assert.equal(channels[1]?.kind, "youtube");
   assert.equal(channels[1]?.country, "International");
 });
+
+test("reconnaît les plateformes par domaine exact", () => {
+  const kinds = parsePlaylist(`#EXTM3U
+#EXTINF:-1,Dailymotion
+https://www.dailymotion.com/video/x8abcd
+#EXTINF:-1,Twitch
+https://www.twitch.tv/example
+#EXTINF:-1,Imitation
+https://notyoutube.com/watch?v=abc`).map((channel) => channel.kind);
+
+  assert.deepEqual(kinds, ["dailymotion", "twitch", "external"]);
+});

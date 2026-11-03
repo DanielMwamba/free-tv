@@ -1,7 +1,7 @@
 export const PLAYLIST_URL =
   "https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8";
 
-export type ChannelKind = "hls" | "youtube" | "twitch" | "external";
+export type ChannelKind = "hls" | "youtube" | "dailymotion" | "twitch" | "external";
 
 export type Channel = {
   id: string;
@@ -22,12 +22,17 @@ export type Channel = {
 const COUNTRY_NAMES = new Intl.DisplayNames(["fr"], { type: "region" });
 const ATTRIBUTE_PATTERN = /([\w-]+)="([^"]*)"/g;
 
+export function isHostOf(hostname: string, domain: string) {
+  return hostname === domain || hostname.endsWith(`.${domain}`);
+}
+
 function getKind(url: string): ChannelKind {
   const hostname = safeHostname(url);
 
   if (/\.m3u8(?:$|[?#])/i.test(url)) return "hls";
-  if (hostname.endsWith("youtube.com") || hostname === "youtu.be") return "youtube";
-  if (hostname.endsWith("twitch.tv")) return "twitch";
+  if (isHostOf(hostname, "youtube.com") || hostname === "youtu.be") return "youtube";
+  if (isHostOf(hostname, "dailymotion.com") || hostname === "dai.ly") return "dailymotion";
+  if (isHostOf(hostname, "twitch.tv")) return "twitch";
   return "external";
 }
 
